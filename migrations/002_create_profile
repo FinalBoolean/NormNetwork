@@ -12,6 +12,7 @@ export async function up (db: Kysely<any>): Promise<void> {
     .addColumn("Class", "varchar(10)", (col) => col.notNull())
     .addColumn("Gender", "varchar(20)", (col) => col.notNull())
     .addColumn("Major", "varchar(255)", (col) => col.notNull())
+    .execute();
 
 }
 export async function down (db: Kysely<any>): Promise<void> {

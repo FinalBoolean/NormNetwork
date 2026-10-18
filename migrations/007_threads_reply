@@ -1,0 +1,16 @@
+import { Kysely, sql } from "kysely";
+
+export async function up (db: Kysely<any>): Promise<void> {
+    await db.schema
+    .createTable("threads_reply")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("thread_id", "integer", (col) => col.references("threads.id").onDelete("cascade").notNull())
+    .addColumn("profile_id", "integer", (col) => col.references("profiles.id").onDelete("cascade").notNull())
+    .addColumn("Body", "text", (col) => col.notNull())
+    .addColumn("created_at", "timestamptz", (col) => col.defaultTo(sql`CURRENT_TIMESTAMP`).notNull())
+    .execute();
+}
+
+export async function down (db: Kysely<any>): Promise<void> {
+    await db.schema.dropTable("threads_reply").ifExists().execute()
+}

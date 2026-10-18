@@ -10,6 +10,7 @@ export async function up (db: Kysely<any>): Promise<void> {
     .addColumn("Rank", "text" ) //some games have no rank, so can be left null
     .addColumn("Main Character", "text") //single player games don't have a main
     .addColumn("Main Role", "text") //some games don't have roles
+    .execute();
 }
 
 export async function down (db: Kysely<any>): Promise<void> {

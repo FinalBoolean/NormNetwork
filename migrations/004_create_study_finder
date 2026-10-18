@@ -9,6 +9,7 @@ export async function up (db: Kysely<any>): Promise<void> {
     .addColumn("Subject", "text", (col) => col.notNull()) //ex: Computer Science, repetitive with course?
     .addColumn("Course", "varchar(100)", (col) => col.notNull()) //ex: ITSC-3155
     .addColumn("Additional Info", "text")
+    .execute();
 }
 
 export async function down (db: Kysely<any>): Promise<void> {
