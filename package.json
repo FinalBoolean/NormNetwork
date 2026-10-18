@@ -1,0 +1,25 @@
+{
+  "name": "normnetwork",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/FinalBoolean/NormNetwork.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/FinalBoolean/NormNetwork/issues"
+  },
+  "homepage": "https://github.com/FinalBoolean/NormNetwork#readme",
+  "dependencies": {
+    "kysely": "^0.29.7",
+    "pg": "^8.23.1"
+  }
+}
