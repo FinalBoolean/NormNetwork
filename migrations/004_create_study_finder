@@ -1,0 +1,16 @@
+import { Kysely, sql } from "kysely";
+
+export async function up (db: Kysely<any>): Promise<void> {
+    await db.schema
+    .createTable("study_finder")
+     .addColumn("user_id", "integer", (col) => 
+        col.primaryKey().references("users.id").onDelete("cascade")
+)
+    .addColumn("Subject", "text", (col) => col.notNull()) //ex: Computer Science, repetitive with course?
+    .addColumn("Course", "varchar(100)", (col) => col.notNull()) //ex: ITSC-3155
+    .addColumn("Additional Info", "text")
+}
+
+export async function down (db: Kysely<any>): Promise<void> {
+    await db.schema.dropTable("study_finder").ifExists().execute()
+}

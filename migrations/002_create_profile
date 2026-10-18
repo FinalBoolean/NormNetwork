@@ -1,0 +1,19 @@
+import { Kysely, sql } from "kysely";
+
+export async function up (db: Kysely<any>): Promise<void> {
+    await db.schema
+    .createTable("profiles")
+    .addColumn("id", "serial", (col) => col.primaryKey())
+    .addColumn("profile_id", "integer", (col) =>
+    col.references("user.id").onDelete("cascade").notNull())
+    .addColumn("profile_picture", "text", )
+    .addColumn("Bio", "text")
+    .addColumn("Age", "integer", (col) => col.notNull())
+    .addColumn("Class", "varchar(10)", (col) => col.notNull())
+    .addColumn("Gender", "varchar(20)", (col) => col.notNull())
+    .addColumn("Major", "varchar(255)", (col) => col.notNull())
+
+}
+export async function down (db: Kysely<any>): Promise<void> {
+    await db.schema.dropTable("profiles").ifExists().execute()
+}
