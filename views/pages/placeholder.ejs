@@ -1,0 +1,16 @@
+<%- include('../partials/head') %>
+
+<section class="panel">
+  <span class="badge">Coming soon</span>
+  <h1><%= title %></h1>
+  <p class="lede"><%= description %></p>
+  <% if (tables.length) { %>
+    <p class="dev-note">
+      For developers: this page will use
+      <% tables.forEach((t, i) => { %><code><%= t %></code><%= i < tables.length - 1 ? ', ' : '' %><% }) %>.
+    </p>
+  <% } %>
+  <a class="btn btn-ghost" href="/">Back to home</a>
+</section>
+
+<%- include('../partials/footer') %>
