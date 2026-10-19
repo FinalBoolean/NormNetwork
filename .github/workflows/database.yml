@@ -1,0 +1,26 @@
+name: Database migrations
+on: [push, pull_request]
+jobs:
+  migrations:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: normnetwork
+          POSTGRES_PASSWORD: normnetwork
+          POSTGRES_DB: normnetwork_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U normnetwork -d normnetwork_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm test
+        env:
+          TEST_DATABASE_URL: postgresql://normnetwork:normnetwork@localhost:5432/normnetwork_test

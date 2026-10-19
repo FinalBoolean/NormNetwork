@@ -1,0 +1,21 @@
+import { sql } from "kysely";
+
+export async function up(db) {
+  await db.schema
+    .createTable("friends")
+    .addColumn("profile_a_id", "integer", (col) =>
+      col.references("profiles.id").onDelete("cascade").notNull(),
+    )
+    .addColumn("profile_b_id", "integer", (col) =>
+      col.references("profiles.id").onDelete("cascade").notNull(),
+    )
+    .addColumn("created_at", "timestamptz", (col) =>
+      col.defaultTo(sql`CURRENT_TIMESTAMP`).notNull(),
+    )
+    .addPrimaryKeyConstraint("friends_pk", ["profile_a_id", "profile_b_id"])
+    .addCheckConstraint("friends_different", sql`profile_a_id < profile_b_id`)
+    .execute();
+}
+export async function down(db) {
+  await db.schema.dropTable("friends").ifExists().execute();
+}
