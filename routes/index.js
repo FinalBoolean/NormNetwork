@@ -3,7 +3,7 @@ import { homeRouter } from "./home.js";
 import { authRouter } from "./auth.js";
 import { profilesRouter } from "./profiles.js";
 import { finderRouter } from "./finder.js";
-import { threadsRouter } from "../threads.js";
+import { threadsRouter } from "./threads.js";
 import { friendsRouter } from "./friends.js";
 
 /**
