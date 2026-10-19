@@ -1,0 +1,10 @@
+<%- include('../partials/head') %>
+
+<section class="panel">
+  <p class="status-code"><%= status %></p>
+  <h1><%= status === 404 ? 'Page not found' : 'Something went wrong' %></h1>
+  <p class="lede"><%= message %></p>
+  <a class="btn" href="/">Back to home</a>
+</section>
+
+<%- include('../partials/footer') %>

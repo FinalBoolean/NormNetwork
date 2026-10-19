@@ -1,0 +1,20 @@
+<%
+  const links = [
+    { href: '/finder', label: 'Finder', match: '/finder' },
+    { href: '/threads', label: 'Threads', match: '/threads' },
+    { href: '/friends', label: 'Friends', match: '/friends' },
+    { href: '/profile', label: 'Profile', match: '/profile' },
+  ];
+  const path = typeof currentPath !== 'undefined' ? currentPath : '';
+%>
+<header class="site-header">
+  <nav class="container nav">
+    <a class="brand" href="/"><span class="brand-mark">NN</span> Norm's Network</a>
+    <ul class="nav-links">
+      <% links.forEach(link => { %>
+        <li><a href="<%= link.href %>" class="<%= path.startsWith(link.match) ? 'active' : '' %>"><%= link.label %></a></li>
+      <% }) %>
+      <li><a class="btn btn-small" href="/login">Log in</a></li>
+    </ul>
+  </nav>
+</header>
