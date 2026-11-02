@@ -1,4 +1,11 @@
 import type { ProfileInput } from "../src/profile.js";
+import { MAJOR_OPTIONS } from "../src/majors.js";
+import {
+  CLASS_STANDINGS,
+  GENDERS,
+  MIN_PROFILE_AGE,
+  MAX_PROFILE_AGE,
+} from "../src/profile.js";
 
 const limits = {
   class: 10,
@@ -30,7 +37,29 @@ export function validateProfile(body: unknown, partial = false) {
       errors[field] = "Enter a valid value.";
       continue;
     }
-    const value = raw.trim();
+    let value = raw.trim();
+    if (field === "major") {
+      const major = MAJOR_OPTIONS.find(
+        (option) => option.toLowerCase() === value.toLowerCase(),
+      );
+      if (!major) {
+        errors[field] =
+          "Choose a UNC Charlotte program from the list, or Undecided.";
+        continue;
+      }
+      value = major;
+    }
+    if (
+      field === "class" &&
+      !(CLASS_STANDINGS as readonly string[]).includes(value)
+    ) {
+      errors[field] = "Choose a class standing from the list.";
+      continue;
+    }
+    if (field === "gender" && !(GENDERS as readonly string[]).includes(value)) {
+      errors[field] = "Choose a gender option from the list.";
+      continue;
+    }
     if (value.length > limits[field]) {
       errors[field] = `Use at most ${limits[field]} characters.`;
       continue;
@@ -61,8 +90,12 @@ export function validateProfile(body: unknown, partial = false) {
         : typeof raw === "string" && /^\d+$/.test(raw.trim())
           ? Number(raw)
           : NaN;
-    if (!Number.isInteger(age) || age < 1 || age > 120)
-      errors.age = "Enter a whole-number age between 1 and 120.";
+    if (
+      !Number.isInteger(age) ||
+      age < MIN_PROFILE_AGE ||
+      age > MAX_PROFILE_AGE
+    )
+      errors.age = `Enter a whole-number age between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
     else values.age = age;
   }
   if (partial && !Object.keys(values).length && !Object.keys(errors).length)
