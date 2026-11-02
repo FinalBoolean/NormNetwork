@@ -75,7 +75,8 @@ describe("app", () => {
 
   test("logged-out nav offers sign up and log in", async () => {
     const html = await (await fetch(`${baseUrl}/`)).text();
-    assert.match(html, /href="\/signup"/);
+    // Home uses the Figma Join landing: signup form + log-in link.
+    assert.match(html, /action="\/signup"|href="\/signup"/);
     assert.match(html, /href="\/login"/);
     assert.doesNotMatch(html, /action="\/logout"/);
   });
