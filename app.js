@@ -2,6 +2,7 @@ import express from "express";
 import { fileURLToPath } from "node:url";
 import { routes } from "./routes/index.js";
 import { notFound, errorHandler } from "./middleware/errors.js";
+import { loadUser, rejectCrossSite } from "./middleware/auth.js";
 
 const fromRoot = (dir) => fileURLToPath(new URL(dir, import.meta.url));
 
@@ -33,6 +34,11 @@ export function createApp({ db } = {}) {
     res.locals.currentPath = req.path;
     next();
   });
+
+  // Auth: block cross-site form posts, then load the logged-in user (req.user,
+  // and currentUser in templates) from the session cookie.
+  app.use(rejectCrossSite);
+  app.use(loadUser);
 
   app.use(routes);
 

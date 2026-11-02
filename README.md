@@ -65,5 +65,22 @@ Then, open http://localhost:3000/ in your browser.
 ### Running Tests
 npm test
 
+Tests run against an in-memory PostgreSQL (PGlite) locally and a real PostgreSQL in CI. Test files run one at a time because in CI they share a database.
+
+## Accounts and authentication
+- **Sign up** at `/signup` with a username, a UNC Charlotte email (`@charlotte.edu` or `@uncc.edu`, configurable with `ALLOWED_EMAIL_DOMAINS`), and a password of at least 8 characters. Emails and usernames are unique regardless of letter case.
+- **Log in** at `/login` with your email or username. **Log out** with the button in the nav (a `POST /logout`).
+- Passwords are hashed with scrypt (built into Node). Sessions are stored in the `sessions` table (migration 010); the browser only holds a random token in an `HttpOnly`, `SameSite=Lax` cookie, and the database only stores a SHA-256 hash of it. Sessions last 7 days.
+- Cross-site form posts are rejected with 403.
+
+### Using auth in routes
+- `req.user` is the logged-in user (`{ id, username, email }`) or `null`. Templates can read it as `currentUser`.
+- Put `requireAuth` (from `middleware/auth.js`) in front of routes that need a login. Browsers are redirected to `/login?next=...` and returned afterwards; JSON clients get a 401. `/profile` and `/friends` already use it.
+
+```js
+import { requireAuth } from "../middleware/auth.js";
+router.get("/edit", requireAuth, (req, res) => { /* req.user.id */ });
+```
+
 ### Stopping the Database
 docker compose down

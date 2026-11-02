@@ -6,7 +6,7 @@
   "scripts": {
     "dev": "node --env-file-if-exists=.env --watch server.js",
     "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
     "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js latest",

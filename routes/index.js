@@ -13,7 +13,7 @@ import { friendsRouter } from "./friends.js";
 export const routes = Router();
 
 routes.use("/", homeRouter); // /, /health
-routes.use("/", authRouter); // /login, /signup
+routes.use("/", authRouter); // /login, /signup, /logout
 routes.use("/profile", profilesRouter);
 routes.use("/finder", finderRouter);
 routes.use("/threads", threadsRouter);

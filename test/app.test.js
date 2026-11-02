@@ -22,20 +22,33 @@ describe("app", () => {
     assert.match(await res.text(), /Norm's Network/);
   });
 
-  test("every nav page renders", async () => {
+  test("every public nav page renders", async () => {
     for (const path of [
       "/login",
       "/signup",
-      "/profile",
       "/finder/friends",
       "/finder/study",
       "/finder/gaming",
       "/threads",
-      "/friends",
     ]) {
       const res = await fetch(`${baseUrl}${path}`);
       assert.equal(res.status, 200, `${path} should return 200`);
     }
+  });
+
+  test("pages for logged-in users redirect to login", async () => {
+    for (const path of ["/profile", "/friends"]) {
+      const res = await fetch(`${baseUrl}${path}`, { redirect: "manual" });
+      assert.equal(res.status, 302, path);
+      assert.equal(res.headers.get("location"), `/login?next=${encodeURIComponent(path)}`);
+    }
+  });
+
+  test("logged-out nav offers sign up and log in", async () => {
+    const html = await (await fetch(`${baseUrl}/`)).text();
+    assert.match(html, /href="\/signup"/);
+    assert.match(html, /href="\/login"/);
+    assert.doesNotMatch(html, /action="\/logout"/);
   });
 
   test("/finder redirects to the friend finder", async () => {
