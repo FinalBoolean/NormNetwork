@@ -1,139 +1,222 @@
-import {
-  BottomNav,
-  FinderSidebar,
-  TopNav,
-  type SessionUser,
-} from "./AppShell.js";
+import { BottomNav, FinderSidebar, TopNav } from "./AppShell.js";
+import type { PageProps } from "./App.js";
 
-type ProfilePageProps = {
-  currentUser?: SessionUser | null;
-  currentPath?: string;
-};
-
-const DEMO = {
-  name: "Maya Patel",
-  age: 20,
-  photo: "/assets/profile/maya.png",
-  photoCount: "1 / 4",
-  hangouts: ["Botanical Gardens", "Atkins Library", "Union Coffee Shop"],
-  about:
-    "Coffee walks, indie playlists & finding a new favorite spot on campus. Always down to trade study tips or catch a live show in NoDa.",
-  details: [
-    { label: "Year", value: "Junior" },
-    { label: "Major", value: "Computer Science" },
-    { label: "Hometown", value: "Raleigh, NC" },
-    { label: "Campus", value: "UNC Charlotte" },
-  ],
-  interests: ["Live music", "Hiking", "Coffee", "Indie playlists", "Photography"],
-} as const;
+const fields = [
+  {
+    name: "age",
+    label: "Age",
+    type: "number",
+    required: true,
+    min: 1,
+    max: 120,
+  },
+  {
+    name: "class",
+    label: "Class standing",
+    type: "text",
+    required: true,
+    maxLength: 10,
+  },
+  {
+    name: "gender",
+    label: "Gender",
+    type: "text",
+    required: true,
+    maxLength: 20,
+  },
+  {
+    name: "major",
+    label: "Major",
+    type: "text",
+    required: true,
+    maxLength: 255,
+  },
+  {
+    name: "profile_picture",
+    label: "Profile photo URL (optional)",
+    type: "url",
+    maxLength: 2048,
+  },
+] as const;
 
 export default function ProfilePageView({
   currentUser: user,
   currentPath = "",
-}: ProfilePageProps) {
+  profile,
+  editingProfile,
+  values,
+  errors = {},
+  notice,
+}: PageProps) {
+  const editing = !profile || editingProfile;
+  const initial: Record<string, string> = values ?? {
+    age: profile ? String(profile.age) : "",
+    class: profile?.class ?? "",
+    gender: profile?.gender ?? "",
+    major: profile?.major ?? "",
+    bio: profile?.bio ?? "",
+    profile_picture: profile?.profile_picture ?? "",
+  };
   return (
     <div className="app-shell finder-page">
       <TopNav user={user} currentPath={currentPath} />
-
       <div className="finder-workspace">
         <FinderSidebar mode="friends" />
-
         <main className="finder-main profile-main">
           <div className="profile-bar">
             <a className="profile-back" href="/finder/friends">
-              <img src="/assets/profile/back.svg" alt="" width={20} height={20} />
+              <img
+                src="/assets/profile/back.svg"
+                alt=""
+                width={20}
+                height={20}
+              />
               Back to Friend Finder
             </a>
-            <button type="button" className="profile-more" aria-label="More options">
-              <img src="/assets/profile/more.svg" alt="" width={24} height={24} />
-            </button>
+            {profile && !editing && (
+              <a
+                className="finder-btn finder-btn-secondary"
+                href="/profile?edit=1"
+              >
+                Edit profile
+              </a>
+            )}
           </div>
-
-          <article className="profile-card">
-            <div className="profile-photo">
-              <img src={DEMO.photo} alt="" className="finder-card-img" />
-              <p className="profile-photo-count">
-                <img
-                  src="/assets/profile/photos.svg"
-                  alt=""
-                  width={16}
-                  height={16}
-                  aria-hidden="true"
-                />
-                {DEMO.photoCount}
-              </p>
-            </div>
-
-            <div className="profile-body">
-              <div className="profile-identity">
-                <p className="finder-verified">
-                  <img
-                    src="/assets/finder/verified.svg"
-                    alt=""
-                    width={17}
-                    height={17}
-                    aria-hidden="true"
-                  />
-                  Verified Niner
+          {notice && (
+            <p className="alert alert-info" role="status">
+              {notice}
+            </p>
+          )}
+          {editing ? (
+            <section className="profile-card profile-editor">
+              <div className="profile-body">
+                <h1>{profile ? "Edit your profile" : "Set up your profile"}</h1>
+                <p className="profile-about">
+                  Tell your campus community a little about yourself,{" "}
+                  {user?.username}.
                 </p>
-                <h1>
-                  {DEMO.name}, {DEMO.age}
-                </h1>
-              </div>
-
-              <button type="button" className="finder-btn finder-btn-primary profile-connect">
-                <img src="/assets/finder/connect.svg" alt="" width={20} height={20} />
-                Connect with Maya
-              </button>
-
-              <section className="profile-section">
-                <h2 className="finder-bond-label">HANGOUTS</h2>
-                <ul className="profile-hangouts">
-                  {DEMO.hangouts.map((place) => (
-                    <li key={place}>
-                      <img
-                        src="/assets/profile/pin.svg"
-                        alt=""
-                        width={24}
-                        height={24}
-                        aria-hidden="true"
+                {!!Object.keys(errors).length && (
+                  <p className="alert alert-error" role="alert">
+                    {errors.form ?? "Please fix the highlighted fields."}
+                  </p>
+                )}
+                <form
+                  className="form profile-form"
+                  method="post"
+                  action={profile ? "/profile/edit" : "/profile"}
+                  noValidate
+                >
+                  {fields.map(({ name, label, ...input }) => (
+                    <div
+                      key={name}
+                      className={`field${errors[name] ? " has-error" : ""}`}
+                    >
+                      <label htmlFor={name}>{label}</label>
+                      <input
+                        {...input}
+                        id={name}
+                        name={name}
+                        defaultValue={initial[name]}
+                        aria-invalid={errors[name] ? true : undefined}
+                        aria-describedby={
+                          errors[name] ? `${name}-error` : undefined
+                        }
                       />
-                      {place}
-                    </li>
-                  ))}
-                </ul>
-              </section>
-
-              <section className="profile-section">
-                <h2 className="finder-bond-label">ABOUT</h2>
-                <p className="profile-about">{DEMO.about}</p>
-              </section>
-
-              <section className="profile-section">
-                <h2 className="finder-bond-label">DETAILS</h2>
-                <dl className="profile-details">
-                  {DEMO.details.map((item) => (
-                    <div key={item.label}>
-                      <dt>{item.label}</dt>
-                      <dd>{item.value}</dd>
+                      {errors[name] && (
+                        <p className="field-error" id={`${name}-error`}>
+                          {errors[name]}
+                        </p>
+                      )}
                     </div>
                   ))}
-                </dl>
-              </section>
-
-              <section className="profile-section">
-                <h2 className="finder-bond-label">INTERESTS</h2>
-                <div className="finder-interest-row">
-                  {DEMO.interests.map((tag) => (
-                    <span key={tag}>{tag}</span>
-                  ))}
+                  <div className={`field${errors.bio ? " has-error" : ""}`}>
+                    <label htmlFor="bio">About you (optional)</label>
+                    <textarea
+                      id="bio"
+                      name="bio"
+                      rows={5}
+                      maxLength={2000}
+                      defaultValue={initial.bio}
+                      aria-invalid={errors.bio ? true : undefined}
+                      aria-describedby={errors.bio ? "bio-error" : undefined}
+                    />
+                    {errors.bio && (
+                      <p className="field-error" id="bio-error">
+                        {errors.bio}
+                      </p>
+                    )}
+                  </div>
+                  <div className="profile-form-actions">
+                    <button
+                      type="submit"
+                      className="finder-btn finder-btn-primary"
+                    >
+                      Save profile
+                    </button>
+                    <a
+                      className="finder-btn finder-btn-secondary"
+                      href={profile ? "/profile" : "/"}
+                    >
+                      Cancel
+                    </a>
+                  </div>
+                </form>
+              </div>
+            </section>
+          ) : (
+            <article className="profile-card">
+              <div className="profile-photo">
+                {profile.profile_picture ? (
+                  <img
+                    src={profile.profile_picture}
+                    alt="Your profile photo"
+                    className="finder-card-img"
+                    referrerPolicy="no-referrer"
+                  />
+                ) : (
+                  <div
+                    className="profile-photo-placeholder"
+                    role="img"
+                    aria-label="No profile photo"
+                  >
+                    {user?.username.slice(0, 2).toUpperCase()}
+                  </div>
+                )}
+              </div>
+              <div className="profile-body">
+                <div className="profile-identity">
+                  <p className="finder-verified">Your profile</p>
+                  <h1>
+                    {user?.username}, {profile.age}
+                  </h1>
                 </div>
-              </section>
-            </div>
-          </article>
+                <section className="profile-section">
+                  <h2 className="finder-bond-label">ABOUT</h2>
+                  <p className="profile-about">
+                    {profile.bio || "Add a bio to tell people about yourself."}
+                  </p>
+                </section>
+                <section className="profile-section">
+                  <h2 className="finder-bond-label">DETAILS</h2>
+                  <dl className="profile-details">
+                    {[
+                      ["Year", profile.class],
+                      ["Major", profile.major],
+                      ["Gender", profile.gender],
+                      ["Campus", "UNC Charlotte"],
+                    ].map(([label, value]) => (
+                      <div key={label}>
+                        <dt>{label}</dt>
+                        <dd>{value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </section>
+              </div>
+            </article>
+          )}
         </main>
       </div>
-
       <BottomNav currentPath={currentPath} />
     </div>
   );

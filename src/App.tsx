@@ -1,3 +1,4 @@
+import type { Profile } from "./profile.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
 import StudyFinderPage from "./StudyFinder.js";
@@ -15,6 +16,8 @@ export interface SessionUser {
 }
 
 export interface PageProps {
+  profile?: Profile | null;
+  editingProfile?: boolean;
   page: string;
 
   title: string;

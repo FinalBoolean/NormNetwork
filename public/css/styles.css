@@ -2345,3 +2345,11 @@ button.btn { font: inherit; font-weight: 600; cursor: pointer; }
     width: 100%;
   }
 }
+
+/* Persisted profile setup and editing. */
+.profile-editor { display: block; }
+.profile-form { margin-top: 1.5rem; }
+.profile-form textarea { font: inherit; width: 100%; padding: .75rem; border: 1px solid var(--line); border-radius: 8px; resize: vertical; }
+.profile-form textarea:focus { outline: 2px solid var(--gold); }
+.profile-form-actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+.profile-photo-placeholder { display: grid; place-items: center; min-height: 320px; height: 100%; background: var(--gold-light); color: var(--green-dark); font-size: 4rem; font-weight: 700; }
