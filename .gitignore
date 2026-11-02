@@ -10,3 +10,6 @@ Thumbs.db
 
 # Windows download tags that appear when copying files into WSL
 *:Zone.Identifier
+
+dist/
+*.tsbuildinfo
