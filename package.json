@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "description": "Norm's Network: find friends, study partners, and gaming groups.",
   "scripts": {
-    "dev": "node --env-file-if-exists=.env --import tsx --watch server.ts",
+    "dev": "tsx watch --clear-screen=false --env-file-if-exists=.env server.ts",
     "start": "node --env-file-if-exists=.env --import tsx server.ts",
     "test": "node --import tsx --test --test-concurrency=1 \"test/**/*.test.ts\"",
     "db:up": "docker compose up -d --wait",
