@@ -3,6 +3,59 @@
 ## Description
 Welcome to Norm's Network, a hub for UNCC Students who are looking for people to talk to. Whether it be as a study buddy, a gaming partner, or a friend, NormsNetwork allows UNCC students to create a main profile for finding friends and navigate other parts of app to find the specific part they want and add information depending on the section they chose. Unlike other UNCC social networks, NormsNetwork seamlessly blends everything in one place so UNCC students don't have to go searching through tons of different apps to try and find people to communicate with.
 
+## Sprint 2 Progress
+
+Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 2 turned that into a working app: students can now create an account, sign in, and build a profile, and every main page has a finished design.
+
+### Completed this sprint
+
+**Accounts and authentication** (PR #35)
+- Sign up with a UNC Charlotte email (`@charlotte.edu` or `@uncc.edu`), a unique username, and a password of at least 8 characters
+- Log in with either your email or your username, and log out from the navigation bar
+- Passwords are hashed with scrypt, and sessions are saved in a new `sessions` table and last 7 days
+- Pages that need an account (`/profile`, `/friends`) send logged-out visitors to the login page, then back to the page they wanted
+- Security checks: cross-site form posts are blocked, and a failed login never reveals whether an account exists
+
+**React and TypeScript migration** (PR #36)
+- Converted the whole app from JavaScript to TypeScript in strict mode
+- Pages are now React components rendered on the server and hydrated in the browser, with Vite building the frontend assets
+- Fixed a development server restart loop
+
+**App screens and design** (PR #37)
+- New sign-up and log-in screens
+- Home page that links to each part of the app
+- Designed pages for the Friend Finder, Study Buddy Finder, Gaming Partner Finder, Public Threads, and Friends, with top and bottom navigation
+
+**Profiles** (PR #38)
+- Create, view, edit, and delete your main profile at `/profile`
+- Profile fields: age, class standing, gender, major, bio, and an uploaded profile photo
+- The form is checked on the server and keeps what you typed when a field needs fixing
+- JSON API for profiles: `GET`, `POST`, `PATCH`, and `DELETE /profile`
+
+**Testing and automation**
+- 71 automated tests covering sign-up, login, sessions, logout, security checks, page rendering, profiles, and database migrations
+- GitHub Actions builds the app and runs every test against PostgreSQL 17 on each push and pull request
+- `/health` endpoint reports whether the server can reach the database
+
+### Feature status
+
+| Page | Route | Status |
+|---|---|---|
+| Sign up / Log in | `/signup`, `/login` | Working |
+| Home | `/` | Working |
+| Profile | `/profile` | Working, saves to the database (login required) |
+| Friend Finder | `/finder/friends` | Design complete, shows sample data |
+| Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
+| Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
+| Public Threads | `/threads` | Design complete, shows sample data |
+| Friends | `/friends` | Design complete, shows sample data (login required) |
+
+### Still to build
+- Connect the three finders to their database tables (`friend_finder`, `study_finder`, `gaming_finder`) so students can save their info and search
+- Posting threads and replies (`threads`, `threads_reply` tables)
+- Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
+- Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
+
 ## Intended Features
  ### Account & Verification
  - Sign-up with your verified UNC Charlotte email to ensure that only real UNCC students can join
@@ -42,30 +95,66 @@ Welcome to Norm's Network, a hub for UNCC Students who are looking for people to
 - **Node's test runner + PGLite for local testing**
 - **GitHub Actions for automated tests against PostgreSQL**
 
+## Database
+
+The database has eleven tables, created by the migrations in `migrations/`:
+
+| Table | Purpose |
+|---|---|
+| `users` | Accounts: username, email, and password hash |
+| `profiles` | Each student's main profile |
+| `profile_photos` | Validated profile photo uploads |
+| `friend_finder` | Friend Finder entries |
+| `study_finder` | Study Buddy Finder entries |
+| `gaming_finder` | Gaming Partner Finder entries |
+| `threads` | Public threads |
+| `threads_reply` | Replies to threads |
+| `friend_request` | Friend requests and their status |
+| `friends` | Accepted friendships |
+| `sessions` | Login sessions (added in Sprint 2) |
+
+![Entity relationship diagram](erd.png)
+
+The diagram was made in Sprint 1, so it doesn't show the `sessions` or `profile_photos` tables.
+
 ## Setup/Run Instructions
 ### 1. Clone the repository
+```bash
 git clone https://github.com/FinalBoolean/NormNetwork.git
 cd NormNetwork
+```
 
 ### 2. Install dependencies
+```bash
 npm install
+```
 
 ### 3. Set up environment variables
+```bash
 cp .env.example .env
+```
 
 ### 4. Start the local PostgreSQL database
+```bash
 npm run db:up
+```
 
 ### 5. Run database migrations
+```bash
 npm run db:migrate
+```
 
 ### 6. Start the development server
+```bash
 npm run dev
+```
 Then, open http://localhost:3000/ in your browser.
 
 
 ### Running Tests
+```bash
 npm test
+```
 
 Tests run against an in-memory PostgreSQL (PGlite) locally and a real PostgreSQL in CI. Test files run one at a time because in CI they share a database.
 
@@ -85,7 +174,13 @@ router.get("/edit", requireAuth, (req, res) => { /* req.user.id */ });
 ```
 
 ### Stopping the Database
-docker compose down
+```bash
+npm run db:down
+```
+
+Other database commands:
+- `npm run db:status`: show which migrations have been applied
+- `npm run db:rollback`: undo the most recent migration
 
 ## React and TypeScript development
 
@@ -151,3 +246,11 @@ master's and doctoral program titles, with duplicates and certificates excluded:
 https://assessment.charlotte.edu/accreditation/sacscoc/program-list-with-cip-codes
 The source and retrieval date are recorded in `src/majors.ts`; refresh the list
 when the university changes its offerings.
+
+## Team
+
+- [@FinalBoolean](https://github.com/FinalBoolean)
+- [@zagog629](https://github.com/zagog629)
+- [@wilmer-4](https://github.com/wilmer-4)
+- [@scoobig](https://github.com/scoobig)
+- [@elephantcubed](https://github.com/elephantcubed)
