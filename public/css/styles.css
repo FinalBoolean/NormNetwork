@@ -68,6 +68,26 @@ code { background: var(--gold-light); padding: 0.1em 0.35em; border-radius: 4px;
 .dev-note { font-size: 0.9rem; color: var(--muted); border-left: 3px solid var(--gold); padding-left: 0.75rem; margin: 0 0 1.5rem; }
 .status-code { font-size: 3rem; font-weight: 800; color: var(--gold); margin: 0; line-height: 1; }
 
+/* Auth: nav user + logout button */
+.nav-user { color: #e6efe9; font-size: 0.9rem; padding: 0 0.4rem; }
+.nav-logout { margin: 0; }
+button.btn { font: inherit; font-weight: 600; cursor: pointer; }
+
+/* Forms */
+.auth-panel { max-width: 460px; }
+.form { display: grid; gap: 1rem; margin-bottom: 1.25rem; }
+.field { display: grid; gap: 0.3rem; }
+.field label { font-weight: 600; font-size: 0.95rem; }
+.field input { font: inherit; padding: 0.6rem 0.75rem; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); }
+.field input:focus { outline: 2px solid var(--gold); outline-offset: 1px; border-color: var(--green); }
+.field.has-error input { border-color: #b3261e; }
+.field-error { color: #b3261e; font-size: 0.875rem; margin: 0; }
+.field-hint { color: var(--muted); font-size: 0.875rem; margin: 0; }
+.form-footer { color: var(--muted); margin: 0; }
+.alert { border-radius: 8px; padding: 0.75rem 1rem; margin-bottom: 1rem; }
+.alert-error { background: #fbeae9; color: #8c1d18; border: 1px solid #f2c4c1; }
+.alert-info { background: var(--gold-light); color: var(--green-dark); border: 1px solid #e3dcc6; }
+
 /* Footer */
 .site-footer { border-top: 1px solid var(--line); color: var(--muted); font-size: 0.9rem; padding: 1.25rem 0; }
 

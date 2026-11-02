@@ -1,12 +1,21 @@
 <%- include('../partials/head') %>
 
 <section class="hero">
-  <h1>Find your people at Charlotte.</h1>
-  <p class="lede">Norm's Network helps Niners meet friends, form study groups, and squad up for games.</p>
-  <div class="actions">
-    <a class="btn" href="/signup">Create an account</a>
-    <a class="btn btn-ghost" href="/threads">Browse threads</a>
-  </div>
+  <% if (typeof currentUser !== 'undefined' && currentUser) { %>
+    <h1>Welcome back, <%= currentUser.username %>.</h1>
+    <p class="lede">Pick up where you left off: find people, or jump into a thread.</p>
+    <div class="actions">
+      <a class="btn" href="/profile">Your profile</a>
+      <a class="btn btn-ghost" href="/threads">Browse threads</a>
+    </div>
+  <% } else { %>
+    <h1>Find your people at Charlotte.</h1>
+    <p class="lede">Norm's Network helps Niners meet friends, form study groups, and squad up for games.</p>
+    <div class="actions">
+      <a class="btn" href="/signup">Create an account</a>
+      <a class="btn btn-ghost" href="/threads">Browse threads</a>
+    </div>
+  <% } %>
 </section>
 
 <section class="cards">
