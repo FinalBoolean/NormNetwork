@@ -3,6 +3,7 @@ import type { ColumnType, Generated } from "kysely";
 type Timestamp = ColumnType<Date, Date | string | undefined, Date | string>;
 
 export interface Database {
+  profile_photos: { profile_id: number; image: Buffer };
   sessions: {
     token_hash: string;
     user_id: number;

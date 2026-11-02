@@ -28,7 +28,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 
 **Profiles** (PR #38)
 - Create, view, edit, and delete your main profile at `/profile`
-- Profile fields: age, class standing, gender, major, bio, and a profile picture link
+- Profile fields: age, class standing, gender, major, bio, and an uploaded profile photo
 - The form is checked on the server and keeps what you typed when a field needs fixing
 - JSON API for profiles: `GET`, `POST`, `PATCH`, and `DELETE /profile`
 
@@ -55,7 +55,6 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
-- Profile photo uploads (the profile currently takes an image link)
 
 ## Intended Features
  ### Account & Verification
@@ -98,12 +97,13 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 
 ## Database
 
-The database has ten tables, created by the migrations in `migrations/`:
+The database has eleven tables, created by the migrations in `migrations/`:
 
 | Table | Purpose |
 |---|---|
 | `users` | Accounts: username, email, and password hash |
 | `profiles` | Each student's main profile |
+| `profile_photos` | Validated profile photo uploads |
 | `friend_finder` | Friend Finder entries |
 | `study_finder` | Study Buddy Finder entries |
 | `gaming_finder` | Gaming Partner Finder entries |
@@ -115,7 +115,7 @@ The database has ten tables, created by the migrations in `migrations/`:
 
 ![Entity relationship diagram](erd.png)
 
-The diagram was made in Sprint 1, so it doesn't show the `sessions` table.
+The diagram was made in Sprint 1, so it doesn't show the `sessions` or `profile_photos` tables.
 
 ## Setup/Run Instructions
 ### 1. Clone the repository
@@ -200,8 +200,8 @@ The existing styling lives in `public/css/styles.css`.
 Database code stays server-side. Never import `db/` into browser components or
 expose `DATABASE_URL` in a `VITE_` variable. `db/types.ts` describes the current
 schema; historical migrations use `Kysely<unknown>` independently of that schema.
-All ten migration basenames are unchanged, so existing databases keep their
-migration history. Run `npm run db:migrate` to apply any pending migrations.
+Existing migration basenames are unchanged, so databases keep their
+migration history. Migration 011 adds storage for uploaded profile photos. Run `npm run db:migrate` to apply any pending migrations.
 
 Tests default to isolated PGlite databases. Only point `TEST_DATABASE_URL` at a
 dedicated disposable database: the tests roll back the entire schema.
@@ -222,10 +222,30 @@ the request body. API clients should send `Accept: application/json`:
 - `DELETE /profile`: delete the current profile. Existing database cascades also
   remove its related finder records, threads/replies, and friendships/requests.
 
-Required creation fields are `age`, `class`, `gender`, and `major`; `bio` and
-`profile_picture` (an HTTP/HTTPS URL) are optional. HTML forms use `POST /profile`
+Required creation fields are `age`, `class`, `gender`, and `major`; `bio` is optional.
+Age must be an integer from 16 to 100. Class standing and gender must match the
+shared choices in `src/profile.ts`. Major uses a searchable selection validated
+against `src/majors.ts` (plus the explicit Undecided status). HTML forms use `POST /profile`
 for creation and `POST /profile/edit` for updates, then redirect to the saved page.
-Profile photo uploads, hangouts, and interests are not part of this profile form.
+After saving a profile, upload a photo using the profile page's file picker.
+`POST /profile/photo` accepts one multipart field named `photo`: JPEG, PNG, or
+WebP, at most 5 MiB and 20 million pixels. The server decodes the content, rejects
+corrupt/animated/unsupported images, applies orientation, resizes to fit 1024 x
+1024, and re-encodes as WebP without metadata. The processed bytes are stored in
+PostgreSQL (`profile_photos`) and cascade-delete with the profile. A replacement
+is atomic and failed uploads preserve the old photo. `GET /profile/photo` serves
+the signed-in user's photo with private/no-store caching. The existing API's
+external photo URL input remains supported for compatibility; the UI uses uploads.
+
+Run `npm run db:migrate` before uploading photos. This is file validation, not
+content moderation or verification that the photo depicts the account owner.
+Hangouts and interests are not part of this profile form.
+
+Major choices are a checked-in snapshot of UNC Charlotte's official bachelor's,
+master's and doctoral program titles, with duplicates and certificates excluded:
+https://assessment.charlotte.edu/accreditation/sacscoc/program-list-with-cip-codes
+The source and retrieval date are recorded in `src/majors.ts`; refresh the list
+when the university changes its offerings.
 
 ## Team
 

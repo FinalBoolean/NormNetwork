@@ -3,6 +3,12 @@ import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errors.js";
 import { validateProfile } from "../lib/profile-validation.js";
 import type { Profile, ProfileInput } from "../src/profile.js";
+import {
+  PHOTO_URL,
+  processPhoto,
+  receivePhoto,
+  uploadError,
+} from "../lib/profile-photo.js";
 
 // Keep the contributor's authenticated profile CRUD, using the app's shared DB.
 export const profilesRouter = Router();
@@ -86,6 +92,76 @@ profilesRouter.get("/", async (req, res) => {
     undefined,
     req.query.saved === "1" ? "Profile saved." : undefined,
   );
+});
+
+profilesRouter.get("/photo", async (req, res) => {
+  const { db, userId } = context(req);
+  const photo = await db
+    .selectFrom("profile_photos")
+    .innerJoin("profiles", "profiles.id", "profile_photos.profile_id")
+    .select("profile_photos.image")
+    .where("profiles.user_id", "=", userId)
+    .where("profiles.profile_picture", "=", PHOTO_URL)
+    .executeTakeFirst();
+  if (!photo) throw new HttpError(404, "Profile photo not found");
+  res.set({
+    "Cache-Control": "private, no-store",
+    "X-Content-Type-Options": "nosniff",
+  });
+  res.type("image/webp").send(Buffer.from(photo.image));
+});
+
+profilesRouter.post("/photo", async (req, res) => {
+  const { db, userId } = context(req);
+  const existing = await db
+    .selectFrom("profiles")
+    .selectAll()
+    .where("user_id", "=", userId)
+    .executeTakeFirst();
+  if (!existing)
+    throw new HttpError(409, "Save your profile before uploading a photo.");
+  let image: Buffer;
+  try {
+    await new Promise<void>((resolve, reject) =>
+      receivePhoto(req, res, (error) =>
+        error ? reject(uploadError(error)) : resolve(),
+      ),
+    );
+    if (!req.file) throw new HttpError(400, "Choose a photo to upload.");
+    image = await processPhoto(req.file.buffer);
+  } catch (error) {
+    if (!(error instanceof HttpError)) throw error;
+    if (wantsJson(req))
+      return res
+        .status(error.status)
+        .json({ errors: { photo: error.message } });
+    res.status(error.status);
+    return renderProfile(res, existing, false, undefined, {
+      photo: error.message,
+    });
+  }
+  await db.transaction().execute(async (trx) => {
+    // Lock the profile so concurrent replacements/deletions remain atomic.
+    const profile = await trx
+      .selectFrom("profiles")
+      .select("id")
+      .where("user_id", "=", userId)
+      .forUpdate()
+      .executeTakeFirst();
+    if (!profile) throw new HttpError(404, "Profile not found");
+    await trx
+      .insertInto("profile_photos")
+      .values({ profile_id: profile.id, image })
+      .onConflict((oc) => oc.column("profile_id").doUpdateSet({ image }))
+      .execute();
+    await trx
+      .updateTable("profiles")
+      .set({ profile_picture: PHOTO_URL })
+      .where("id", "=", profile.id)
+      .execute();
+  });
+  if (wantsJson(req)) return res.json({ profile_picture: PHOTO_URL });
+  res.redirect(303, "/profile?saved=1");
 });
 
 profilesRouter.post("/", async (req, res) => {
