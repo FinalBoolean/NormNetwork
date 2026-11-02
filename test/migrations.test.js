@@ -1,46 +1,24 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { Kysely, PostgresDialect } from "kysely";
 import { NO_MIGRATIONS } from "kysely/migration";
-import { PGlite } from "@electric-sql/pglite";
-import { createDatabase } from "../db/index.js";
 import { createMigrator } from "../db/migrator.js";
+import { createTestDatabase } from "./helpers/db.js";
+
+const MIGRATION_COUNT = 10;
 
 test("migrations apply, enforce relationships, roll back, and reapply", async () => {
-  // CI uses a dedicated PostgreSQL service. Locally use an isolated PostgreSQL WASM instance.
-  const embedded = process.env.TEST_DATABASE_URL ? null : new PGlite();
-  const client = embedded && {
-    async query(text, parameters) {
-      const result = await embedded.query(text, parameters);
-      return { ...result, rowCount: result.affectedRows ?? result.rows.length };
-    },
-    release() {},
-  };
-  const db = embedded
-    ? new Kysely({
-        dialect: new PostgresDialect({
-          pool: {
-            async connect() {
-              return client;
-            },
-            async end() {
-              await embedded.close();
-            },
-          },
-        }),
-      })
-    : createDatabase(process.env.TEST_DATABASE_URL);
+  const db = createTestDatabase();
   const migrator = createMigrator(db);
   const check = (result) => {
     if (result.error) throw result.error;
     return result.results;
   };
   try {
-    assert.equal(check(await migrator.migrateToLatest()).length, 9);
+    assert.equal(check(await migrator.migrateToLatest()).length, MIGRATION_COUNT);
     assert.equal(check(await migrator.migrateToLatest()).length, 0);
     assert.equal(
       (await migrator.getMigrations()).filter((m) => m.executedAt).length,
-      9,
+      MIGRATION_COUNT,
     );
     const user = await db
       .insertInto("users")
@@ -62,6 +40,37 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
         })
         .execute(),
       { code: "23505" },
+    );
+    // Usernames are unique regardless of case (migration 010)
+    await assert.rejects(
+      db
+        .insertInto("users")
+        .values({
+          username: "ALICE",
+          email: "other-alice@example.test",
+          password_hash: "test-hash",
+        })
+        .execute(),
+      { code: "23505" },
+    );
+    await db
+      .insertInto("sessions")
+      .values({
+        token_hash: "test-token-hash",
+        user_id: user.id,
+        expires_at: new Date(Date.now() + 60_000),
+      })
+      .execute();
+    await assert.rejects(
+      db
+        .insertInto("sessions")
+        .values({
+          token_hash: "orphan",
+          user_id: 999999,
+          expires_at: new Date(),
+        })
+        .execute(),
+      { code: "23503" },
     );
     await assert.rejects(
       db
@@ -161,6 +170,7 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       "threads_reply",
       "friend_request",
       "friends",
+      "sessions",
     ]) {
       assert.deepEqual(await db.selectFrom(table).selectAll().execute(), []);
     }
@@ -170,14 +180,14 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
     );
     check(await migrator.migrateDown());
     assert.equal(check(await migrator.migrateToLatest()).length, 1);
-    assert.equal(check(await migrator.migrateTo(NO_MIGRATIONS)).length, 9);
+    assert.equal(check(await migrator.migrateTo(NO_MIGRATIONS)).length, MIGRATION_COUNT);
     assert.deepEqual(
       (await db.introspection.getTables()).filter(
         (t) => !t.name.startsWith("kysely_"),
       ),
       [],
     );
-    assert.equal(check(await migrator.migrateToLatest()).length, 9);
+    assert.equal(check(await migrator.migrateToLatest()).length, MIGRATION_COUNT);
     check(await migrator.migrateTo(NO_MIGRATIONS));
   } finally {
     await db.destroy();
