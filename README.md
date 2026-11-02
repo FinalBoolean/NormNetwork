@@ -110,3 +110,24 @@ migration history. Run `npm run db:migrate` to apply any pending migrations.
 
 Tests default to isolated PGlite databases. Only point `TEST_DATABASE_URL` at a
 dedicated disposable database: the tests roll back the entire schema.
+
+
+## Profiles
+
+After signing in, open **You** (`/profile`) to create your profile. Saved profiles
+show your own details; **Edit profile** opens the form again. Forms validate on
+the server and keep entered values when a field needs correction.
+
+The profile routes use the signed-in session's user ID, never an ID supplied in
+the request body. API clients should send `Accept: application/json`:
+
+- `GET /profile`: current profile, or 404 if one has not been created.
+- `POST /profile`: create a profile; duplicates return 409.
+- `PATCH /profile`: update supplied fields; empty updates return 400.
+- `DELETE /profile`: delete the current profile. Existing database cascades also
+  remove its related finder records, threads/replies, and friendships/requests.
+
+Required creation fields are `age`, `class`, `gender`, and `major`; `bio` and
+`profile_picture` (an HTTP/HTTPS URL) are optional. HTML forms use `POST /profile`
+for creation and `POST /profile/edit` for updates, then redirect to the saved page.
+Profile photo uploads, hangouts, and interests are not part of this profile form.

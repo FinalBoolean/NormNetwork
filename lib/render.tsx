@@ -22,6 +22,8 @@ export function reactPages(clientScript?: string): RequestHandler {
         currentPath: res.locals.currentPath,
         currentUser: res.locals.currentUser,
 
+        profile: data.profile,
+        editingProfile: data.editingProfile,
         values: data.values,
         errors: data.errors,
         next: data.next,
