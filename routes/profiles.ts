@@ -1,5 +1,4 @@
 import { Router } from "express";
-import { placeholder } from "./placeholder.js";
 import { requireAuth } from "../middleware/auth.js";
 
 // Profiles: view and edit a student's profile. Tables: profiles
@@ -7,9 +6,9 @@ import { requireAuth } from "../middleware/auth.js";
 export const profilesRouter = Router();
 profilesRouter.use(requireAuth);
 
-profilesRouter.get(
-  "/",
-  placeholder("Your profile", "Profile picture, bio, class, major and more.", [
-    "profiles",
-  ]),
-);
+profilesRouter.get("/", (_req, res) => {
+  res.render("pages/profile", {
+    title: "Your profile",
+    description: "Profile picture, bio, class, major and more.",
+  });
+});
