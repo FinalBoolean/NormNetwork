@@ -1,0 +1,29 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "verbatimModuleSyntax": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": ["node"],
+    "jsx": "react-jsx"
+  },
+  "include": [
+    "db",
+    "migrations",
+    "scripts",
+    "test",
+    "vite.config.ts",
+    "app.ts",
+    "server.ts",
+    "lib",
+    "middleware",
+    "routes",
+    "src",
+    "types"
+  ]
+}

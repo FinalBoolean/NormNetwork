@@ -1,7 +1,7 @@
 # Norm's Network
 
 ## Description
-Welcome to Norm's Network, a hub for UNCC Students who are looking for people to talk to. Whether it be as a study buddy, a gaming partner, or a friend, NormsNetwork allows UNCC students to create a main profile for finding friends and navigate other parts of app to find the specific part they want and add information depending on the section they chose. Unlike other UNCC social networks, NormsNetwork seamlessly blends everything in one place so UNCC students don’t have to go searching through tons of different apps to try and find people to communicate with.
+Welcome to Norm's Network, a hub for UNCC Students who are looking for people to talk to. Whether it be as a study buddy, a gaming partner, or a friend, NormsNetwork allows UNCC students to create a main profile for finding friends and navigate other parts of app to find the specific part they want and add information depending on the section they chose. Unlike other UNCC social networks, NormsNetwork seamlessly blends everything in one place so UNCC students don't have to go searching through tons of different apps to try and find people to communicate with.
 
 ## Intended Features
  ### Account & Verification
@@ -33,7 +33,9 @@ Welcome to Norm's Network, a hub for UNCC Students who are looking for people to
 
 
 ## Technology Stack
-- **Node.js 22+**
+- **Node.js 22.12+ and TypeScript (strict mode)**
+- **React server-rendered pages with browser hydration; Vite for frontend assets**
+- **Express 5 for routing and authentication**
 - **PostgreSQL 17**
 - **Kysely**
 - **Docker Compose for local PostgreSQL**
@@ -74,13 +76,37 @@ Tests run against an in-memory PostgreSQL (PGlite) locally and a real PostgreSQL
 - Cross-site form posts are rejected with 403.
 
 ### Using auth in routes
-- `req.user` is the logged-in user (`{ id, username, email }`) or `null`. Templates can read it as `currentUser`.
-- Put `requireAuth` (from `middleware/auth.js`) in front of routes that need a login. Browsers are redirected to `/login?next=...` and returned afterwards; JSON clients get a 401. `/profile` and `/friends` already use it.
+- `req.user` is the logged-in user (`{ id, username, email }`) or `null`. React pages receive it as `currentUser`.
+- Put `requireAuth` (from `middleware/auth.ts`) in front of routes that need a login. Browsers are redirected to `/login?next=...` and returned afterwards; JSON clients get a 401. `/profile` and `/friends` already use it.
 
-```js
+```ts
 import { requireAuth } from "../middleware/auth.js";
 router.get("/edit", requireAuth, (req, res) => { /* req.user.id */ });
 ```
 
 ### Stopping the Database
 docker compose down
+
+## React and TypeScript development
+
+`npm run dev` runs Express and Vite together at http://localhost:3000 (or `PORT`).
+React components live in `src/App.tsx`; Express routes render them through
+`lib/render.tsx`. Forms keep their existing POST/redirect behavior and work even
+without JavaScript. `src/main.tsx` hydrates the server-rendered page in the browser.
+The existing styling lives in `public/css/styles.css`.
+
+- `npm run typecheck`: check frontend, server, migrations, and tests.
+- `npm run build`: typecheck and build browser assets into `dist/`.
+- `npm test`: run authentication, page, and migration tests.
+- Production: run `npm run build`, then set `NODE_ENV=production` and run `npm start`.
+  Deploy the source, `public/`, `dist/`, and production dependencies (including `tsx`).
+  Production sessions require HTTPS because cookies are Secure.
+
+Database code stays server-side. Never import `db/` into browser components or
+expose `DATABASE_URL` in a `VITE_` variable. `db/types.ts` describes the current
+schema; historical migrations use `Kysely<unknown>` independently of that schema.
+All ten migration basenames are unchanged, so existing databases keep their
+migration history. Run `npm run db:migrate` to apply any pending migrations.
+
+Tests default to isolated PGlite databases. Only point `TEST_DATABASE_URL` at a
+dedicated disposable database: the tests roll back the entire schema.

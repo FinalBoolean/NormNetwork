@@ -2,16 +2,17 @@
   "name": "normnetwork",
   "version": "1.0.0",
   "description": "Norm's Network: find friends, study partners, and gaming groups.",
-  "main": "server.js",
   "scripts": {
-    "dev": "node --env-file-if-exists=.env --watch server.js",
-    "start": "node --env-file-if-exists=.env server.js",
-    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "dev": "node --env-file-if-exists=.env --import tsx --watch server.ts",
+    "start": "node --env-file-if-exists=.env --import tsx server.ts",
+    "test": "node --import tsx --test --test-concurrency=1 \"test/**/*.test.ts\"",
     "db:up": "docker compose up -d --wait",
     "db:down": "docker compose down",
-    "db:migrate": "node --env-file-if-exists=.env scripts/migrate.js latest",
-    "db:rollback": "node --env-file-if-exists=.env scripts/migrate.js down",
-    "db:status": "node --env-file-if-exists=.env scripts/migrate.js status"
+    "db:migrate": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts latest",
+    "db:rollback": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts down",
+    "db:status": "node --env-file-if-exists=.env --import tsx scripts/migrate.ts status",
+    "build": "npm run typecheck && vite build",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.app.json"
   },
   "repository": {
     "type": "git",
@@ -26,15 +27,25 @@
   },
   "homepage": "https://github.com/FinalBoolean/NormNetwork#readme",
   "dependencies": {
-    "ejs": "^7.0.2",
     "express": "^5.3.0",
     "kysely": "^0.29.7",
-    "pg": "^8.23.1"
+    "pg": "^8.23.1",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "tsx": "^4.23.15"
   },
   "devDependencies": {
-    "@electric-sql/pglite": "^0.5.10"
+    "@electric-sql/pglite": "^0.5.10",
+    "@types/express": "^5.0.6",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5"
   },
   "engines": {
-    "node": ">=22.9"
+    "node": ">=22.12.0"
   }
 }
