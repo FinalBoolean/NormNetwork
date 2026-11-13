@@ -53,6 +53,7 @@ export default function ProfilePageView({
   notice,
   companionTypes,
   studyProfile,
+  gamingProfile,
 }: PageProps) {
   const editing = !profile || editingProfile;
   const initial: Record<string, string> = values ?? {
@@ -284,6 +285,7 @@ export default function ProfilePageView({
             <LookingForOverview
               companionTypes={companionTypes}
               studyProfile={studyProfile}
+              gamingProfile={gamingProfile}
             />
           )}
         </main>

@@ -18,10 +18,15 @@ export async function companionTypesFor(db: Db, userId: number) {
 
 /** Everything the profile page shows about what a student is looking for. */
 export async function companionData(db: Db, userId: number) {
-  const [companionTypes, studyProfile] = await Promise.all([
+  const [companionTypes, studyProfile, gamingProfile] = await Promise.all([
     companionTypesFor(db, userId),
     db
       .selectFrom("study_finder")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .executeTakeFirst(),
+    db
+      .selectFrom("gaming_finder")
       .selectAll()
       .where("user_id", "=", userId)
       .executeTakeFirst(),
@@ -29,6 +34,7 @@ export async function companionData(db: Db, userId: number) {
   return {
     companionTypes,
     studyProfile: studyProfile ?? null,
+    gamingProfile: gamingProfile ?? null,
   };
 }
 

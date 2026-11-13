@@ -1,5 +1,9 @@
 import type { Profile } from "./profile.js";
-import type { CompanionType, StudyProfile } from "./companions.js";
+import type {
+  CompanionType,
+  GamingProfile,
+  StudyProfile,
+} from "./companions.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
 import StudyFinderPage from "./StudyFinder.js";
@@ -9,7 +13,11 @@ import ThreadsPageView from "./ThreadsPage.js";
 import FriendsPageView from "./FriendsPage.js";
 import HomePage from "./HomePage.js";
 import ErrorPage from "./ErrorPage.js";
-import { CompanionTypesPage, StudyProfilePage } from "./CompanionPages.js";
+import {
+  CompanionTypesPage,
+  GamingProfilePage,
+  StudyProfilePage,
+} from "./CompanionPages.js";
 
 export interface SessionUser {
   id: number;
@@ -22,6 +30,7 @@ export interface PageProps {
   editingProfile?: boolean;
   companionTypes?: CompanionType[];
   studyProfile?: StudyProfile | null;
+  gamingProfile?: GamingProfile | null;
   page: string;
 
   title: string;
@@ -520,6 +529,10 @@ export default function App(props: PageProps) {
 
   if (page === "study_profile") {
     return <StudyProfilePage {...props} />;
+  }
+
+  if (page === "gaming_profile") {
+    return <GamingProfilePage {...props} />;
   }
 
   if (page === "threads") {

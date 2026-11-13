@@ -100,10 +100,20 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     availability: "Tue & Thu, 4–6 PM",
     meeting_place: "Atkins Library, 3rd floor",
   };
+  const gaming = {
+    games: "VALORANT, Minecraft, valorant",
+    platforms: ["pc", "Nintendo Switch"],
+    rank: "Diamond 2",
+    main_character: "Omen",
+    main_role: "Controller",
+    play_style: "competitive",
+    voice_chat: "Mic on",
+    availability: "Evenings",
+  };
 
   try {
     await t.test("every route needs a session", async () => {
-      for (const path of ["/companions", "/study"]) {
+      for (const path of ["/companions", "/study", "/gaming"]) {
         for (const method of ["GET", "PUT", "DELETE"])
           assert.equal(
             (await api(path, method, method === "PUT" ? {} : undefined, ""))
@@ -129,7 +139,8 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
         409,
       );
       assert.equal((await api("/study", "PUT", study, c)).status, 409);
-      for (const path of ["/companions", "/study"]) {
+      assert.equal((await api("/gaming", "PUT", gaming, c)).status, 409);
+      for (const path of ["/companions", "/study", "/gaming"]) {
         const res = await page(`/profile${path}`, c);
         assert.equal(res.status, 302, path);
         assert.equal(res.headers.get("location"), "/profile");
@@ -287,6 +298,67 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       assert.match(profile, /Atkins Library, 3rd floor/);
     });
 
+    await t.test("gaming profiles validate games, platforms, and choices", async () => {
+      for (const invalid of [
+        {},
+        { ...gaming, games: "" },
+        { ...gaming, games: "A, B, C, D, E, F" },
+        { ...gaming, games: "x".repeat(51) },
+        { ...gaming, platforms: [] },
+        { ...gaming, platforms: ["Dreamcast"] },
+        { ...gaming, platforms: [1] },
+        { ...gaming, play_style: "Sweaty" },
+        { ...gaming, play_style: undefined },
+        { ...gaming, voice_chat: "Carrier pigeon" },
+        { ...gaming, rank: "x".repeat(51) },
+        { ...gaming, main_role: {} },
+      ])
+        assert.equal(
+          (await api("/gaming", "PUT", invalid)).status,
+          400,
+          JSON.stringify(invalid).slice(0, 80),
+        );
+      const res = await api("/gaming", "PUT", { ...gaming, rank: " " });
+      assert.equal(res.status, 200);
+      const saved = await res.json();
+      assert.equal(saved.games, "VALORANT, Minecraft");
+      assert.equal(saved.platforms, "PC, Nintendo Switch");
+      assert.equal(saved.play_style, "Competitive");
+      assert.equal(saved.rank, null);
+      assert.deepEqual(await types(), ["friends", "study", "gaming"]);
+      const profile = await (await page("/profile")).text();
+      assert.match(profile, /Unranked/);
+      assert.match(profile, /VALORANT, Minecraft/);
+    });
+
+    await t.test("the gaming form round-trips checkboxes and selects", async () => {
+      const bad = await form("/profile/gaming", [
+        ["games", "Rocket League"],
+        ["platforms", "Xbox"],
+        ["platforms", "PC"],
+        ["play_style", "Casual"],
+      ]);
+      assert.equal(bad.status, 400);
+      const html = decode(await bad.text());
+      assert.match(html, /value="Rocket League"/);
+      assert.ok(inputHas(html, "Xbox", "checked"));
+      assert.ok(inputHas(html, "PC", "checked"));
+      assert.ok(!inputHas(html, "Mobile", "checked"));
+      assert.match(html, /<option value="Casual" selected="">/);
+      assert.match(html, /Choose how you like to communicate/);
+      const saved = await form("/profile/gaming", [
+        ["games", "Rocket League"],
+        ["platforms", "Xbox"],
+        ["play_style", "Casual"],
+        ["voice_chat", "Either"],
+      ]);
+      assert.equal(saved.status, 303);
+      assert.equal(saved.headers.get("location"), "/profile?saved=gaming");
+      const row = await (await api("/gaming")).json();
+      assert.equal(row.platforms, "Xbox");
+      assert.equal(row.main_character, null);
+    });
+
     await t.test("dating is limited to students 18 and older", async () => {
       assert.equal(
         (
@@ -337,21 +409,20 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     });
 
     await t.test("removing a profile deletes it and turns its type off", async () => {
-      await api("/companions", "PUT", { companion_types: ["study"] });
+      await api("/companions", "PUT", { companion_types: ["study", "gaming"] });
       const removed = await api("/study", "DELETE");
       assert.equal(removed.status, 200);
       assert.equal((await removed.json()).studyProfile.subject, "Data structures");
       assert.equal((await api("/study", "DELETE")).status, 404);
-      assert.deepEqual(await types(), []);
-      await api("/study", "PUT", study);
-      const html = await form("/profile/study/delete", []);
+      assert.deepEqual(await types(), ["gaming"]);
+      const html = await form("/profile/gaming/delete", []);
       assert.equal(html.status, 303);
-      assert.equal(html.headers.get("location"), "/profile?removed=study");
+      assert.equal(html.headers.get("location"), "/profile?removed=gaming");
       assert.match(
-        await (await page("/profile?removed=study")).text(),
-        /Study partner profile removed/,
+        await (await page("/profile?removed=gaming")).text(),
+        /Gaming partner profile removed/,
       );
-      assert.equal((await api("/study")).status, 404);
+      assert.equal((await api("/gaming")).status, 404);
       assert.deepEqual(await types(), []);
     });
 
@@ -371,10 +442,12 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     await t.test("deleting the main profile removes everything", async () => {
       await api("/companions", "PUT", { companion_types: ["friends"] });
       await api("/study", "PUT", study);
+      await api("/gaming", "PUT", gaming);
       assert.equal((await api("", "DELETE")).status, 200);
       for (const table of [
         "companion_types",
         "study_finder",
+        "gaming_finder",
       ] as const)
         assert.equal(
           (

@@ -1,10 +1,17 @@
 import {
   COMPANION_INFO,
   COMPANION_TYPES,
+  GAME_NAME_MAX,
+  GAMING_LIMITS,
   MAX_COURSES,
+  MAX_GAMES,
   MIN_DATING_AGE,
+  PLATFORMS,
+  PLAY_STYLES,
   STUDY_LIMITS,
+  VOICE_CHAT,
   type CompanionType,
+  type GamingProfile,
   type StudyProfile,
 } from "../src/companions.js";
 
@@ -66,6 +73,23 @@ function text(
     return null;
   }
   return value;
+}
+
+/** One value from a fixed list, matched case-insensitively. */
+function choice<T extends string>(
+  input: Body,
+  field: string,
+  options: readonly T[],
+  errors: Errors,
+  message: string,
+) {
+  const raw = input[field];
+  const match =
+    typeof raw === "string"
+      ? options.find((option) => option.toLowerCase() === raw.trim().toLowerCase())
+      : undefined;
+  if (!match) errors[field] = message;
+  return match ?? null;
 }
 
 /** One or more values from a fixed list, returned in the list's order. */
@@ -163,6 +187,58 @@ export function validateStudyProfile(body: unknown) {
     input,
     "meeting_place",
     STUDY_LIMITS.meeting_place,
+    errors,
+  );
+  return { values, errors };
+}
+
+// ---------- Gaming partner profile ----------
+
+export function validateGamingProfile(body: unknown) {
+  const values = {} as Omit<GamingProfile, "user_id">;
+  const input = asBody(body);
+  if (!input) return { values, ...invalidBody("Submit a gaming profile.") };
+  const errors: Errors = {};
+
+  const games = list(input.games);
+  if (!games) errors.games = "Enter a valid value.";
+  else if (!games.length) errors.games = "Enter at least one game you play.";
+  else if (games.length > MAX_GAMES)
+    errors.games = `List at most ${MAX_GAMES} games.`;
+  else if (games.some((game) => game.length > GAME_NAME_MAX))
+    errors.games = `Keep each game name to ${GAME_NAME_MAX} characters or fewer.`;
+  else values.games = games.join(", ");
+
+  values.platforms = choices(input, "platforms", PLATFORMS, errors, {
+    empty: "Choose at least one platform.",
+    invalid: "Choose platforms from the list.",
+  }).join(", ");
+  values.rank = text(input, "rank", GAMING_LIMITS.rank, errors);
+  values.main_character = text(
+    input,
+    "main_character",
+    GAMING_LIMITS.main_character,
+    errors,
+  );
+  values.main_role = text(input, "main_role", GAMING_LIMITS.main_role, errors);
+  values.play_style = choice(
+    input,
+    "play_style",
+    PLAY_STYLES,
+    errors,
+    "Choose a play style from the list.",
+  );
+  values.voice_chat = choice(
+    input,
+    "voice_chat",
+    VOICE_CHAT,
+    errors,
+    "Choose how you like to communicate.",
+  );
+  values.availability = text(
+    input,
+    "availability",
+    GAMING_LIMITS.availability,
     errors,
   );
   return { values, errors };

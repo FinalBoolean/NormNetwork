@@ -46,6 +46,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Profile | `/profile` | Working, saves to the database (login required) |
 | What you're looking for | `/profile/companions` | Working, saves to the database (login required) |
 | Study partner profile | `/profile/study` | Working, saves to the database (login required) |
+| Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
@@ -53,8 +54,8 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Friends | `/friends` | Design complete, shows sample data (login required) |
 
 ### Still to build
-- Connect the Friend and Gaming finders to their database tables (`friend_finder`, `gaming_finder`) so students can save their info
-- Show real students on the finder pages and let students search them. Study partner profiles can now be saved; the finder pages still show sample data
+- Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
+- Show real students on the finder pages and let students search them. Study and gaming partner profiles can now be saved; the finder pages still show sample data
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
@@ -110,7 +111,7 @@ The database has twelve tables, created by the migrations in `migrations/`:
 | `companion_types` | What each student is looking for: friends, study, gaming, dating |
 | `friend_finder` | Friend Finder entries |
 | `study_finder` | Study partner profiles |
-| `gaming_finder` | Gaming Partner Finder entries |
+| `gaming_finder` | Gaming partner profiles |
 | `threads` | Public threads |
 | `threads_reply` | Replies to threads |
 | `friend_request` | Friend requests and their status |
@@ -120,7 +121,7 @@ The database has twelve tables, created by the migrations in `migrations/`:
 ![Entity relationship diagram](erd.png)
 
 The diagram was made in Sprint 1, so it doesn't show the `sessions`, `profile_photos`, or `companion_types` tables,
-or the columns migration 013 added to `study_finder`.
+or the columns migrations 013 and 014 added to `study_finder` and `gaming_finder`.
 
 ## Setup/Run Instructions
 ### 1. Clone the repository
@@ -265,13 +266,14 @@ Partner profiles hold the details for each companion type:
 | Profile | Page | Fields |
 |---|---|---|
 | Study partner | `/profile/study` | subject, courses (up to 5 codes like `ITSC 3155`), what you need help with, when you can meet, favorite study spot |
+| Gaming partner | `/profile/gaming` | games (up to 5), platforms, rank (blank = unranked), main role, main character, play style, comms, when you play |
 
 - Saving one of these profiles turns its companion type on. **Remove** deletes it and
   turns the type off. Unchecking a type on `/profile/companions` only pauses it.
 - **Dating is 18+ only.** Students under 18 can't choose Dating. If a profile edit sets
   the age below 18, Dating is turned off in the same transaction.
-- Course lists are stored as comma-separated text, cleaned up on save: course
-  codes are normalized to `ITSC 3155` and duplicates are removed.
+- Lists (courses, games, platforms) are stored as comma-separated text, cleaned up
+  on save: course codes are normalized to `ITSC 3155` and duplicates are removed.
   Choices and limits are shared between the forms and the server in
   `src/companions.ts`; server checks are in `lib/companion-validation.ts`.
 
@@ -281,8 +283,8 @@ saved main profile, otherwise writes return 409):
 - `GET /profile/companions`: `{ "companion_types": ["friends", "study"] }`
 - `PUT /profile/companions`: replace the choices with `{ "companion_types": [...] }`
   (an array or a comma-separated string)
-- `GET`, `PUT`, `DELETE /profile/study`: read,
-  create or replace, and remove the study partner profile. `GET` returns 404 until one is saved.
+- `GET`, `PUT`, `DELETE /profile/study`, `/profile/gaming`: read,
+  create or replace, and remove each profile. `GET` returns 404 until one is saved.
 
 HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to
 `/profile`. Run `npm run db:migrate` to apply the new migrations before using these pages.

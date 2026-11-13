@@ -47,10 +47,16 @@ export interface Database {
   };
   gaming_finder: {
     user_id: number;
+    // Comma-separated game names
     games: string;
     rank: string | null;
     main_character: string | null;
     main_role: string | null;
+    // Comma-separated, from PLATFORMS in src/companions.ts
+    platforms: string | null;
+    play_style: string | null;
+    voice_chat: string | null;
+    availability: string | null;
   };
   threads: {
     id: Generated<number>;

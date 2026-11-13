@@ -5,7 +5,7 @@ import { NO_MIGRATIONS } from "kysely/migration";
 import { createMigrator } from "../db/migrator.js";
 import { createTestDatabase } from "./helpers/db.js";
 
-const MIGRATION_COUNT = 13;
+const MIGRATION_COUNT = 14;
 
 test("migrations apply, enforce relationships, roll back, and reapply", async () => {
   const db = createTestDatabase();

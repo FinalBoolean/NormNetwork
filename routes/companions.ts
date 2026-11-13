@@ -8,13 +8,14 @@ import { HttpError } from "../middleware/errors.js";
 import { companionTypesFor } from "../lib/companions.js";
 import {
   validateCompanionTypes,
+  validateGamingProfile,
   validateStudyProfile,
 } from "../lib/companion-validation.js";
 import type { CompanionType } from "../src/companions.js";
 import { context, wantsJson } from "./profiles.js";
 
 // What students are looking for, and the profile for each kind of companion.
-// Mounted at /profile. Tables: companion_types, study_finder
+// Mounted at /profile. Tables: companion_types, study_finder, gaming_finder
 export const companionsRouter = Router();
 companionsRouter.use(requireAuth);
 
@@ -143,7 +144,7 @@ interface PartnerProfile<Row, Values> {
   page: string;
   title: string;
   /** Prop name the React page reads the saved row from. */
-  prop: "studyProfile";
+  prop: "studyProfile" | "gamingProfile";
   fields: readonly string[];
   validate(body: unknown): { values: Values; errors: Errors };
   find(db: Db, userId: number): Promise<Row | undefined>;
@@ -263,6 +264,43 @@ partnerProfileRoutes({
   remove: (db, userId) =>
     db
       .deleteFrom("study_finder")
+      .where("user_id", "=", userId)
+      .returningAll()
+      .executeTakeFirst(),
+});
+
+partnerProfileRoutes({
+  type: "gaming",
+  page: "gaming_profile",
+  title: "Gaming partner profile",
+  prop: "gamingProfile",
+  fields: [
+    "games",
+    "platforms",
+    "rank",
+    "main_character",
+    "main_role",
+    "play_style",
+    "voice_chat",
+    "availability",
+  ],
+  validate: validateGamingProfile,
+  find: (db, userId) =>
+    db
+      .selectFrom("gaming_finder")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .executeTakeFirst(),
+  save: (db, userId, values) =>
+    db
+      .insertInto("gaming_finder")
+      .values({ ...values, user_id: userId })
+      .onConflict((oc) => oc.column("user_id").doUpdateSet(values))
+      .returningAll()
+      .executeTakeFirstOrThrow(),
+  remove: (db, userId) =>
+    db
+      .deleteFrom("gaming_finder")
       .where("user_id", "=", userId)
       .returningAll()
       .executeTakeFirst(),

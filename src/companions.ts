@@ -48,6 +48,38 @@ export interface StudyProfile {
   meeting_place: string | null;
 }
 
+// ---------- Gaming partner profile ----------
+
+export const MAX_GAMES = 5;
+export const GAME_NAME_MAX = 50;
+export const GAMING_LIMITS = {
+  rank: 50,
+  main_character: 50,
+  main_role: 50,
+  availability: 100,
+} as const;
+export const PLATFORMS = [
+  "PC",
+  "PlayStation",
+  "Xbox",
+  "Nintendo Switch",
+  "Mobile",
+] as const;
+export const PLAY_STYLES = ["Casual", "Competitive", "Either"] as const;
+export const VOICE_CHAT = ["Mic on", "Text chat only", "Either"] as const;
+
+export interface GamingProfile {
+  user_id: number;
+  games: string;
+  rank: string | null;
+  main_character: string | null;
+  main_role: string | null;
+  platforms: string | null;
+  play_style: string | null;
+  voice_chat: string | null;
+  availability: string | null;
+}
+
 /** Splits a stored comma-separated list ("PC, Xbox") back into items. */
 export function splitList(value: string | null | undefined) {
   return (value ?? "")

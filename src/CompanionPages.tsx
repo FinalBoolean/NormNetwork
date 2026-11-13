@@ -4,11 +4,18 @@ import { BottomNav, FinderSidebar, TopNav, type FinderMode } from "./AppShell.js
 import {
   COMPANION_INFO,
   COMPANION_TYPES,
+  GAME_NAME_MAX,
+  GAMING_LIMITS,
   MAX_COURSES,
+  MAX_GAMES,
   MIN_DATING_AGE,
+  PLATFORMS,
+  PLAY_STYLES,
   STUDY_LIMITS,
+  VOICE_CHAT,
   splitList,
   type CompanionType,
+  type GamingProfile,
   type StudyProfile,
 } from "./companions.js";
 
@@ -108,6 +115,44 @@ function TextAreaField({
         aria-invalid={errors[name] ? true : undefined}
         aria-describedby={describedBy(name, errors)}
       />
+      <FieldMessages name={name} errors={errors} />
+    </div>
+  );
+}
+
+function SelectField({
+  name,
+  label,
+  options,
+  placeholder,
+  initial,
+  errors,
+}: {
+  name: string;
+  label: string;
+  options: readonly string[];
+  placeholder: string;
+  initial: Values;
+  errors: Errors;
+}) {
+  return (
+    <div className={`field${errors[name] ? " has-error" : ""}`}>
+      <label htmlFor={name}>{label}</label>
+      <select
+        id={name}
+        name={name}
+        required
+        defaultValue={initial[name] ?? ""}
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={describedBy(name, errors)}
+      >
+        <option value="">{placeholder}</option>
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
       <FieldMessages name={name} errors={errors} />
     </div>
   );
@@ -390,6 +435,119 @@ export function StudyProfilePage(props: PageProps) {
   );
 }
 
+// ---------- Gaming partner profile ----------
+
+export function GamingProfilePage(props: PageProps) {
+  const { gamingProfile: row, values, errors = {} } = props;
+  const initial: Values = values ?? {
+    games: row?.games ?? "",
+    platforms: row?.platforms ?? "",
+    rank: row?.rank ?? "",
+    main_character: row?.main_character ?? "",
+    main_role: row?.main_role ?? "",
+    play_style: row?.play_style ?? "",
+    voice_chat: row?.voice_chat ?? "",
+    availability: row?.availability ?? "",
+  };
+  return (
+    <CompanionLayout
+      props={props}
+      mode="gaming"
+      eyebrow="GAMING PARTNER PROFILE"
+      heading={row ? "Edit your gaming profile" : "Set up your gaming profile"}
+      intro="Share what you play and how you like to play it, so you can find your next duo."
+    >
+      <form
+        className="form profile-form"
+        method="post"
+        action="/profile/gaming"
+        noValidate
+      >
+        <TextField
+          name="games"
+          label="Games you play"
+          placeholder="VALORANT, Minecraft"
+          required
+          wide
+          autoComplete="off"
+          hint={`Separate games with commas. Up to ${MAX_GAMES}, ${GAME_NAME_MAX} characters each.`}
+          initial={initial}
+          errors={errors}
+        />
+        <ChoiceGroup
+          name="platforms"
+          legend="Platforms"
+          variant="pill"
+          selected={splitList(initial.platforms)}
+          errors={errors}
+          choices={PLATFORMS.map((platform) => ({
+            value: platform,
+            label: platform,
+          }))}
+        />
+        <TextField
+          name="rank"
+          label="Rank (optional)"
+          placeholder="Diamond 2"
+          maxLength={GAMING_LIMITS.rank}
+          hint="Your rank in your main game. Leave blank if you play unranked."
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="main_role"
+          label="Main role (optional)"
+          placeholder="Controller"
+          maxLength={GAMING_LIMITS.main_role}
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="main_character"
+          label="Main character (optional)"
+          placeholder="Omen"
+          maxLength={GAMING_LIMITS.main_character}
+          hint="Agent, champion, class, or loadout you play most."
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="availability"
+          label="When do you play? (optional)"
+          placeholder="Evenings after 8 PM"
+          maxLength={GAMING_LIMITS.availability}
+          initial={initial}
+          errors={errors}
+        />
+        <SelectField
+          name="play_style"
+          label="Play style"
+          placeholder="Select play style"
+          options={PLAY_STYLES}
+          initial={initial}
+          errors={errors}
+        />
+        <SelectField
+          name="voice_chat"
+          label="Comms"
+          placeholder="Select how you talk"
+          options={VOICE_CHAT}
+          initial={initial}
+          errors={errors}
+        />
+        <FormActions saveLabel="Save gaming profile" />
+      </form>
+      {row && (
+        <RemoveForm
+          action="/profile/gaming/delete"
+          label="Remove gaming profile"
+          description="Deletes these details and turns off Gaming partners."
+        />
+      )}
+    </CompanionLayout>
+  );
+}
+
 // ---------- Summary on the profile page ----------
 
 type Card = {
@@ -406,16 +564,34 @@ const studyDetails = (row: StudyProfile): Card["details"] => [
   ["Study spot", row.meeting_place],
 ];
 
+const gamingDetails = (row: GamingProfile): Card["details"] => [
+  ["Games", row.games],
+  ["Platforms", row.platforms],
+  ["Rank", row.rank ?? "Unranked"],
+  ["Role", row.main_role],
+  ["Main", row.main_character],
+  ["Style", row.play_style],
+  ["Comms", row.voice_chat],
+  ["Plays", row.availability],
+];
+
 export function LookingForOverview({
   companionTypes = [],
   studyProfile,
-}: Pick<PageProps, "companionTypes" | "studyProfile">) {
+  gamingProfile,
+}: Pick<PageProps, "companionTypes" | "studyProfile" | "gamingProfile">) {
   const cards: Card[] = [
     {
       type: "study",
       title: "Study partner profile",
       href: "/profile/study",
       details: studyProfile ? studyDetails(studyProfile) : null,
+    },
+    {
+      type: "gaming",
+      title: "Gaming partner profile",
+      href: "/profile/gaming",
+      details: gamingProfile ? gamingDetails(gamingProfile) : null,
     },
   ];
   const shown = cards.filter(

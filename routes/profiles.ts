@@ -56,9 +56,11 @@ const NOTICES: Record<string, Record<string, string>> = {
     "1": "Profile saved.",
     companions: "Saved what you're looking for.",
     study: "Study partner profile saved.",
+    gaming: "Gaming partner profile saved.",
   },
   removed: {
     study: "Study partner profile removed.",
+    gaming: "Gaming partner profile removed.",
   },
 };
 
