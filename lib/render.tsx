@@ -24,6 +24,7 @@ export function reactPages(clientScript?: string): RequestHandler {
 
         profile: data.profile,
         editingProfile: data.editingProfile,
+        companionTypes: data.companionTypes,
         values: data.values,
         errors: data.errors,
         next: data.next,

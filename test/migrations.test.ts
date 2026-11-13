@@ -5,7 +5,7 @@ import { NO_MIGRATIONS } from "kysely/migration";
 import { createMigrator } from "../db/migrator.js";
 import { createTestDatabase } from "./helpers/db.js";
 
-const MIGRATION_COUNT = 11;
+const MIGRATION_COUNT = 12;
 
 test("migrations apply, enforce relationships, roll back, and reapply", async () => {
   const db = createTestDatabase();
@@ -115,6 +115,28 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       .insertInto("gaming_finder")
       .values({ user_id: user.id, games: "Chess" })
       .execute();
+    // Companion types (migration 012)
+    await db
+      .insertInto("companion_types")
+      .values([
+        { user_id: user.id, type: "study" },
+        { user_id: user.id, type: "dating" },
+      ])
+      .execute();
+    await assert.rejects(
+      db
+        .insertInto("companion_types")
+        .values({ user_id: user.id, type: "study" })
+        .execute(),
+      { code: "23505" },
+    );
+    await assert.rejects(
+      db
+        .insertInto("companion_types")
+        .values({ user_id: user.id, type: "roommates" })
+        .execute(),
+      { code: "23514" },
+    );
     const thread = await db
       .insertInto("threads")
       .values({
@@ -172,6 +194,7 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       "friend_finder",
       "study_finder",
       "gaming_finder",
+      "companion_types",
       "threads",
       "threads_reply",
       "friend_request",

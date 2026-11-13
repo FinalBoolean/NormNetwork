@@ -32,6 +32,10 @@ export interface Database {
     interest: string;
     preferred_gender: string;
   };
+  companion_types: {
+    user_id: number;
+    type: string;
+  };
   study_finder: {
     user_id: number;
     subject: string;

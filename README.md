@@ -44,6 +44,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Sign up / Log in | `/signup`, `/login` | Working |
 | Home | `/` | Working |
 | Profile | `/profile` | Working, saves to the database (login required) |
+| What you're looking for | `/profile/companions` | Working, saves to the database (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
@@ -97,13 +98,14 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 
 ## Database
 
-The database has eleven tables, created by the migrations in `migrations/`:
+The database has twelve tables, created by the migrations in `migrations/`:
 
 | Table | Purpose |
 |---|---|
 | `users` | Accounts: username, email, and password hash |
 | `profiles` | Each student's main profile |
 | `profile_photos` | Validated profile photo uploads |
+| `companion_types` | What each student is looking for: friends, study, gaming, dating |
 | `friend_finder` | Friend Finder entries |
 | `study_finder` | Study Buddy Finder entries |
 | `gaming_finder` | Gaming Partner Finder entries |
@@ -115,7 +117,7 @@ The database has eleven tables, created by the migrations in `migrations/`:
 
 ![Entity relationship diagram](erd.png)
 
-The diagram was made in Sprint 1, so it doesn't show the `sessions` or `profile_photos` tables.
+The diagram was made in Sprint 1, so it doesn't show the `sessions`, `profile_photos`, or `companion_types` tables.
 
 ## Setup/Run Instructions
 ### 1. Clone the repository
@@ -246,6 +248,28 @@ master's and doctoral program titles, with duplicates and certificates excluded:
 https://assessment.charlotte.edu/accreditation/sacscoc/program-list-with-cip-codes
 The source and retrieval date are recorded in `src/majors.ts`; refresh the list
 when the university changes its offerings.
+
+## What you're looking for
+
+After saving a main profile, students choose what they're looking for at
+`/profile/companions`: **Friends**, **Study partners**, **Gaming partners**, and/or
+**Dating** (any combination, at least one). New profiles are sent there right after
+they're created, and the profile page shows the current choices.
+
+- **Dating is 18+ only.** Students under 18 can't choose Dating. If a profile edit sets
+  the age below 18, Dating is turned off in the same transaction.
+- Choices and limits are shared between the forms and the server in
+  `src/companions.ts`; server checks are in `lib/companion-validation.ts`.
+
+JSON API (send `Accept: application/json`; all routes use the signed-in user and need a
+saved main profile, otherwise writes return 409):
+
+- `GET /profile/companions`: `{ "companion_types": ["friends", "study"] }`
+- `PUT /profile/companions`: replace the choices with `{ "companion_types": [...] }`
+  (an array or a comma-separated string)
+
+The HTML form posts to `/profile/companions`, then redirects to `/profile`. Run
+`npm run db:migrate` to apply the new migration before using this page.
 
 ## Team
 
