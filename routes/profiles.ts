@@ -3,6 +3,8 @@ import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errors.js";
 import { validateProfile } from "../lib/profile-validation.js";
 import type { Profile, ProfileInput } from "../src/profile.js";
+import { MIN_DATING_AGE } from "../src/companions.js";
+import { clearDating, companionData } from "../lib/companions.js";
 import {
   PHOTO_URL,
   processPhoto,
@@ -14,7 +16,7 @@ import {
 export const profilesRouter = Router();
 profilesRouter.use(requireAuth);
 
-function context(req: Request) {
+export function context(req: Request) {
   if (!req.user) throw new HttpError(401, "You need to log in first.");
   const db = req.app.locals.db;
   if (!db)
@@ -25,7 +27,7 @@ function context(req: Request) {
   return { db, userId: req.user.id };
 }
 
-const wantsJson = (req: Request) =>
+export const wantsJson = (req: Request) =>
   req.is("application/json") || req.accepts(["html", "json"]) === "json";
 
 function renderProfile(
@@ -35,6 +37,7 @@ function renderProfile(
   values?: Record<string, string>,
   errors?: Record<string, string>,
   notice?: string,
+  companions?: Awaited<ReturnType<typeof companionData>>,
 ) {
   res.render("pages/profile", {
     title: "Your profile",
@@ -43,7 +46,33 @@ function renderProfile(
     values,
     errors,
     notice,
+    ...companions,
   });
+}
+
+// ?saved=... and ?removed=... after a redirect
+const NOTICES: Record<string, Record<string, string>> = {
+  saved: {
+    "1": "Profile saved.",
+    companions: "Saved what you're looking for.",
+    study: "Study partner profile saved.",
+    gaming: "Gaming partner profile saved.",
+    dating: "Dating preferences saved.",
+  },
+  removed: {
+    study: "Study partner profile removed.",
+    gaming: "Gaming partner profile removed.",
+    dating: "Dating preferences removed.",
+  },
+};
+
+function noticeFor(query: Request["query"]) {
+  for (const [param, messages] of Object.entries(NOTICES)) {
+    const key = query[param];
+    if (typeof key === "string" && Object.hasOwn(messages, key))
+      return messages[key];
+  }
+  return undefined;
 }
 
 function invalid(
@@ -84,13 +113,15 @@ profilesRouter.get("/", async (req, res) => {
     return profile
       ? res.json(profile)
       : res.status(404).json({ error: "Profile not found" });
+  const editing = !profile || req.query.edit === "1";
   renderProfile(
     res,
     profile ?? null,
     req.query.edit === "1",
     undefined,
     undefined,
-    req.query.saved === "1" ? "Profile saved." : undefined,
+    noticeFor(req.query),
+    editing ? undefined : await companionData(db, userId),
   );
 });
 
@@ -184,7 +215,8 @@ profilesRouter.post("/", async (req, res) => {
       409,
     );
   if (wantsJson(req)) return res.status(201).json(profile);
-  res.redirect(303, "/profile?saved=1");
+  // Next step for a new profile: choose what you're looking for.
+  res.redirect(303, "/profile/companions?welcome=1");
 });
 
 // HTML forms use POST /edit; API clients keep the original PATCH /profile.
@@ -198,12 +230,18 @@ async function updateProfile(req: Request, res: Response) {
   if (!existing) throw new HttpError(404, "Profile not found");
   const { values, errors } = validateProfile(req.body, true);
   if (Object.keys(errors).length) return invalid(req, res, errors, existing);
-  const profile = await db
-    .updateTable("profiles")
-    .set(values)
-    .where("user_id", "=", userId)
-    .returningAll()
-    .executeTakeFirst();
+  const profile = await db.transaction().execute(async (trx) => {
+    const updated = await trx
+      .updateTable("profiles")
+      .set(values)
+      .where("user_id", "=", userId)
+      .returningAll()
+      .executeTakeFirst();
+    // Dating is 18+ only, so an age below that turns it off.
+    if (updated && updated.age < MIN_DATING_AGE)
+      await clearDating(trx, userId);
+    return updated;
+  });
   if (!profile) throw new HttpError(404, "Profile not found");
   if (wantsJson(req)) return res.json(profile);
   res.redirect(303, "/profile?saved=1");

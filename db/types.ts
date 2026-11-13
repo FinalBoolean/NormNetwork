@@ -32,18 +32,39 @@ export interface Database {
     interest: string;
     preferred_gender: string;
   };
+  companion_types: {
+    user_id: number;
+    type: string;
+  };
   study_finder: {
     user_id: number;
     subject: string;
+    // Comma-separated course codes, e.g. "ITSC 2214, ITSC 3155"
     course: string;
     additional_info: string | null;
+    availability: string | null;
+    meeting_place: string | null;
   };
   gaming_finder: {
     user_id: number;
+    // Comma-separated game names
     games: string;
     rank: string | null;
     main_character: string | null;
     main_role: string | null;
+    // Comma-separated, from PLATFORMS in src/companions.ts
+    platforms: string | null;
+    play_style: string | null;
+    voice_chat: string | null;
+    availability: string | null;
+  };
+  dating_preferences: {
+    user_id: number;
+    // Comma-separated, from DATING_INTERESTS in src/companions.ts
+    interested_in: string;
+    age_min: number;
+    age_max: number;
+    looking_for: string;
   };
   threads: {
     id: Generated<number>;

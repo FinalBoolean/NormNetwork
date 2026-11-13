@@ -5,7 +5,7 @@ import { NO_MIGRATIONS } from "kysely/migration";
 import { createMigrator } from "../db/migrator.js";
 import { createTestDatabase } from "./helpers/db.js";
 
-const MIGRATION_COUNT = 11;
+const MIGRATION_COUNT = 15;
 
 test("migrations apply, enforce relationships, roll back, and reapply", async () => {
   const db = createTestDatabase();
@@ -115,6 +115,49 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       .insertInto("gaming_finder")
       .values({ user_id: user.id, games: "Chess" })
       .execute();
+    // Companion types (migration 012)
+    await db
+      .insertInto("companion_types")
+      .values([
+        { user_id: user.id, type: "study" },
+        { user_id: user.id, type: "dating" },
+      ])
+      .execute();
+    await assert.rejects(
+      db
+        .insertInto("companion_types")
+        .values({ user_id: user.id, type: "study" })
+        .execute(),
+      { code: "23505" },
+    );
+    await assert.rejects(
+      db
+        .insertInto("companion_types")
+        .values({ user_id: user.id, type: "roommates" })
+        .execute(),
+      { code: "23514" },
+    );
+    // Dating age ranges must be adult-only (migration 015)
+    const dating = {
+      user_id: user.id,
+      interested_in: "Everyone",
+      age_min: 18,
+      age_max: 25,
+      looking_for: "Still figuring it out",
+    };
+    for (const ages of [
+      { age_min: 17, age_max: 25 },
+      { age_min: 25, age_max: 20 },
+      { age_min: 18, age_max: 101 },
+    ])
+      await assert.rejects(
+        db
+          .insertInto("dating_preferences")
+          .values({ ...dating, ...ages })
+          .execute(),
+        { code: "23514" },
+      );
+    await db.insertInto("dating_preferences").values(dating).execute();
     const thread = await db
       .insertInto("threads")
       .values({
@@ -172,6 +215,8 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       "friend_finder",
       "study_finder",
       "gaming_finder",
+      "companion_types",
+      "dating_preferences",
       "threads",
       "threads_reply",
       "friend_request",
