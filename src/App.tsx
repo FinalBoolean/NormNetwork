@@ -1,5 +1,5 @@
 import type { Profile } from "./profile.js";
-import type { CompanionType } from "./companions.js";
+import type { CompanionType, StudyProfile } from "./companions.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
 import StudyFinderPage from "./StudyFinder.js";
@@ -9,7 +9,7 @@ import ThreadsPageView from "./ThreadsPage.js";
 import FriendsPageView from "./FriendsPage.js";
 import HomePage from "./HomePage.js";
 import ErrorPage from "./ErrorPage.js";
-import { CompanionTypesPage } from "./CompanionPages.js";
+import { CompanionTypesPage, StudyProfilePage } from "./CompanionPages.js";
 
 export interface SessionUser {
   id: number;
@@ -21,6 +21,7 @@ export interface PageProps {
   profile?: Profile | null;
   editingProfile?: boolean;
   companionTypes?: CompanionType[];
+  studyProfile?: StudyProfile | null;
   page: string;
 
   title: string;
@@ -515,6 +516,10 @@ export default function App(props: PageProps) {
 
   if (page === "companions") {
     return <CompanionTypesPage {...props} />;
+  }
+
+  if (page === "study_profile") {
+    return <StudyProfilePage {...props} />;
   }
 
   if (page === "threads") {

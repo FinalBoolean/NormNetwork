@@ -39,8 +39,11 @@ export interface Database {
   study_finder: {
     user_id: number;
     subject: string;
+    // Comma-separated course codes, e.g. "ITSC 2214, ITSC 3155"
     course: string;
     additional_info: string | null;
+    availability: string | null;
+    meeting_place: string | null;
   };
   gaming_finder: {
     user_id: number;

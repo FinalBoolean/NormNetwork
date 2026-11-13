@@ -29,6 +29,25 @@ export const COMPANION_INFO: Record<
 /** Dating is only available to students this age or older. */
 export const MIN_DATING_AGE = 18;
 
+// ---------- Study partner profile ----------
+
+export const MAX_COURSES = 5;
+export const STUDY_LIMITS = {
+  subject: 100,
+  additional_info: 1000,
+  availability: 100,
+  meeting_place: 100,
+} as const;
+
+export interface StudyProfile {
+  user_id: number;
+  subject: string;
+  course: string;
+  additional_info: string | null;
+  availability: string | null;
+  meeting_place: string | null;
+}
+
 /** Splits a stored comma-separated list ("PC, Xbox") back into items. */
 export function splitList(value: string | null | undefined) {
   return (value ?? "")

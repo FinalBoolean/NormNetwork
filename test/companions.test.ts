@@ -93,9 +93,17 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     (await (await api("/companions", "GET", undefined, cookie)).json())
       .companion_types;
 
+  const study = {
+    subject: "Data structures",
+    course: "itsc2214, ITSC-3155, itsc 2214",
+    additional_info: "Quiz each other before the midterm.",
+    availability: "Tue & Thu, 4–6 PM",
+    meeting_place: "Atkins Library, 3rd floor",
+  };
+
   try {
     await t.test("every route needs a session", async () => {
-      for (const path of ["/companions"]) {
+      for (const path of ["/companions", "/study"]) {
         for (const method of ["GET", "PUT", "DELETE"])
           assert.equal(
             (await api(path, method, method === "PUT" ? {} : undefined, ""))
@@ -120,7 +128,8 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
           .status,
         409,
       );
-      for (const path of ["/companions"]) {
+      assert.equal((await api("/study", "PUT", study, c)).status, 409);
+      for (const path of ["/companions", "/study"]) {
         const res = await page(`/profile${path}`, c);
         assert.equal(res.status, 302, path);
         assert.equal(res.headers.get("location"), "/profile");
@@ -201,7 +210,81 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       const profile = decode(await (await page("/profile?saved=companions")).text());
       assert.match(profile, /Saved what you're looking for/);
       assert.match(profile, /Friends · Study partners · Dating/);
-      assert.match(profile, /href="\/profile\/companions"/);
+      assert.match(profile, /Not set up/);
+      assert.match(profile, /href="\/profile\/study"/);
+    });
+
+    await t.test("study profiles validate courses and fields", async () => {
+      for (const invalid of [
+        {},
+        [],
+        { ...study, subject: " " },
+        { ...study, subject: "x".repeat(101) },
+        { ...study, course: "" },
+        { ...study, course: "Data Structures" },
+        { ...study, course: "ITSC 31555" },
+        { ...study, course: "A 1234" },
+        { ...study, course: "MATH 1241, MATH 1242, ITSC 1212, ITSC 1213, ITSC 2214, ITSC 2175" },
+        { ...study, course: 3155 },
+        { ...study, additional_info: "x".repeat(1001) },
+        { ...study, availability: ["Monday"] },
+        { ...study, meeting_place: "x".repeat(101) },
+      ])
+        assert.equal(
+          (await api("/study", "PUT", invalid)).status,
+          400,
+          JSON.stringify(invalid).slice(0, 80),
+        );
+      assert.equal((await api("/study")).status, 404);
+    });
+
+    await t.test("study profiles save, update, and belong to their owner", async () => {
+      await api("/companions", "PUT", { companion_types: ["friends"] });
+      const res = await api("/study", "PUT", { ...study, user_id: bob.user.id });
+      assert.equal(res.status, 200);
+      const saved = await res.json();
+      assert.equal(saved.user_id, alice.user.id);
+      assert.equal(saved.course, "ITSC 2214, ITSC 3155");
+      assert.equal(saved.meeting_place, study.meeting_place);
+      // Saving turns the study companion type on.
+      assert.deepEqual(await types(), ["friends", "study"]);
+      const updated = await (
+        await api("/study", "PUT", {
+          subject: "Calculus",
+          course: "MATH 1241",
+          availability: "",
+        })
+      ).json();
+      assert.equal(updated.subject, "Calculus");
+      assert.equal(updated.availability, null);
+      assert.equal(updated.additional_info, null);
+      assert.equal((await api("/study", "GET", undefined, bob.cookie)).status, 404);
+      assert.equal(
+        (await db.selectFrom("study_finder").selectAll().execute()).length,
+        1,
+      );
+    });
+
+    await t.test("the study form keeps entered values and redirects on save", async () => {
+      const edit = await (await page("/profile/study")).text();
+      assert.match(edit, /action="\/profile\/study"/);
+      assert.match(edit, /value="MATH 1241"/);
+      assert.match(edit, /action="\/profile\/study\/delete"/);
+      const bad = await form("/profile/study", [
+        ["subject", "Statistics"],
+        ["course", "not a course"],
+      ]);
+      assert.equal(bad.status, 400);
+      const html = decode(await bad.text());
+      assert.match(html, /value="Statistics"/);
+      assert.match(html, /isn't a course code/);
+      const saved = await form("/profile/study", Object.entries(study));
+      assert.equal(saved.status, 303);
+      assert.equal(saved.headers.get("location"), "/profile?saved=study");
+      const profile = decode(await (await page("/profile?saved=study")).text());
+      assert.match(profile, /Study partner profile saved/);
+      assert.match(profile, /ITSC 2214, ITSC 3155/);
+      assert.match(profile, /Atkins Library, 3rd floor/);
     });
 
     await t.test("dating is limited to students 18 and older", async () => {
@@ -219,6 +302,14 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       const html = await (await page("/profile/companions", teen.cookie)).text();
       assert.ok(inputHas(html, "dating", "disabled"));
       assert.match(html, /Only open to students 18 and older/);
+    });
+
+    await t.test("turning a type off pauses it and keeps its details", async () => {
+      await api("/companions", "PUT", { companion_types: ["friends"] });
+      assert.deepEqual(await types(), ["friends"]);
+      assert.equal((await api("/study")).status, 200);
+      const html = await (await page("/profile")).text();
+      assert.match(html, /Paused/);
     });
 
     await t.test("an age below 18 turns dating off", async () => {
@@ -245,9 +336,28 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       });
     });
 
+    await t.test("removing a profile deletes it and turns its type off", async () => {
+      await api("/companions", "PUT", { companion_types: ["study"] });
+      const removed = await api("/study", "DELETE");
+      assert.equal(removed.status, 200);
+      assert.equal((await removed.json()).studyProfile.subject, "Data structures");
+      assert.equal((await api("/study", "DELETE")).status, 404);
+      assert.deepEqual(await types(), []);
+      await api("/study", "PUT", study);
+      const html = await form("/profile/study/delete", []);
+      assert.equal(html.status, 303);
+      assert.equal(html.headers.get("location"), "/profile?removed=study");
+      assert.match(
+        await (await page("/profile?removed=study")).text(),
+        /Study partner profile removed/,
+      );
+      assert.equal((await api("/study")).status, 404);
+      assert.deepEqual(await types(), []);
+    });
+
     await t.test("cross-site changes are rejected", async () => {
       const before = await types();
-      for (const path of ["/profile/companions"]) {
+      for (const path of ["/profile/companions", "/profile/study"]) {
         const res = await page(path, alice.cookie, {
           method: "POST",
           headers: { "sec-fetch-site": "cross-site" },
@@ -260,9 +370,11 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
 
     await t.test("deleting the main profile removes everything", async () => {
       await api("/companions", "PUT", { companion_types: ["friends"] });
+      await api("/study", "PUT", study);
       assert.equal((await api("", "DELETE")).status, 200);
       for (const table of [
         "companion_types",
+        "study_finder",
       ] as const)
         assert.equal(
           (

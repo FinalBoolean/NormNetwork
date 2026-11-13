@@ -1,13 +1,18 @@
-import type { ReactNode } from "react";
+import type { InputHTMLAttributes, ReactNode } from "react";
 import type { PageProps } from "./App.js";
 import { BottomNav, FinderSidebar, TopNav, type FinderMode } from "./AppShell.js";
 import {
   COMPANION_INFO,
   COMPANION_TYPES,
+  MAX_COURSES,
   MIN_DATING_AGE,
+  STUDY_LIMITS,
   splitList,
+  type CompanionType,
+  type StudyProfile,
 } from "./companions.js";
 
+type Values = Record<string, string>;
 type Errors = Record<string, string>;
 
 const describedBy = (name: string, errors: Errors, hint?: ReactNode) =>
@@ -37,6 +42,74 @@ function FieldMessages({
         </p>
       )}
     </>
+  );
+}
+
+function TextField({
+  name,
+  label,
+  hint,
+  initial,
+  errors,
+  wide,
+  ...input
+}: {
+  name: string;
+  label: string;
+  hint?: ReactNode;
+  initial: Values;
+  errors: Errors;
+  wide?: boolean;
+} & InputHTMLAttributes<HTMLInputElement>) {
+  return (
+    <div
+      className={`field${wide ? " field-wide" : ""}${errors[name] ? " has-error" : ""}`}
+    >
+      <label htmlFor={name}>{label}</label>
+      <input
+        type="text"
+        {...input}
+        id={name}
+        name={name}
+        defaultValue={initial[name] ?? ""}
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={describedBy(name, errors, hint)}
+      />
+      <FieldMessages name={name} hint={hint} errors={errors} />
+    </div>
+  );
+}
+
+function TextAreaField({
+  name,
+  label,
+  initial,
+  errors,
+  maxLength,
+  placeholder,
+}: {
+  name: string;
+  label: string;
+  initial: Values;
+  errors: Errors;
+  maxLength: number;
+  placeholder?: string;
+}) {
+  return (
+    <div className={`field field-wide${errors[name] ? " has-error" : ""}`}>
+      <label htmlFor={name}>{label}</label>
+      <textarea
+        id={name}
+        name={name}
+        rows={4}
+        maxLength={maxLength}
+        placeholder={placeholder}
+        defaultValue={initial[name] ?? ""}
+        aria-invalid={errors[name] ? true : undefined}
+        aria-describedby={describedBy(name, errors)}
+      />
+      <FieldMessages name={name} errors={errors} />
+    </div>
   );
 }
 
@@ -111,6 +184,25 @@ function FormActions({ saveLabel }: { saveLabel: string }) {
         Cancel
       </a>
     </div>
+  );
+}
+
+function RemoveForm({
+  action,
+  label,
+  description,
+}: {
+  action: string;
+  label: string;
+  description: string;
+}) {
+  return (
+    <form className="companion-remove" method="post" action={action}>
+      <button type="submit" className="companion-remove-btn">
+        {label}
+      </button>
+      <p>{description}</p>
+    </form>
   );
 }
 
@@ -217,11 +309,118 @@ export function CompanionTypesPage(props: PageProps) {
   );
 }
 
+// ---------- Study partner profile ----------
+
+export function StudyProfilePage(props: PageProps) {
+  const { studyProfile: row, values, errors = {} } = props;
+  const initial: Values = values ?? {
+    subject: row?.subject ?? "",
+    course: row?.course ?? "",
+    additional_info: row?.additional_info ?? "",
+    availability: row?.availability ?? "",
+    meeting_place: row?.meeting_place ?? "",
+  };
+  return (
+    <CompanionLayout
+      props={props}
+      mode="study"
+      eyebrow="STUDY PARTNER PROFILE"
+      heading={row ? "Edit your study profile" : "Set up your study profile"}
+      intro="Tell other Niners what you're studying so the right study buddy can find you."
+    >
+      <form
+        className="form profile-form"
+        method="post"
+        action="/profile/study"
+        noValidate
+      >
+        <TextField
+          name="subject"
+          label="Subject"
+          placeholder="Data structures"
+          required
+          maxLength={STUDY_LIMITS.subject}
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="course"
+          label="Courses"
+          placeholder="ITSC 2214, ITSC 3155"
+          required
+          autoComplete="off"
+          hint={`Course codes separated by commas. Up to ${MAX_COURSES}.`}
+          initial={initial}
+          errors={errors}
+        />
+        <TextAreaField
+          name="additional_info"
+          label="What do you need help with? (optional)"
+          placeholder="Quizzing each other before the midterm, working through practice problems..."
+          maxLength={STUDY_LIMITS.additional_info}
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="availability"
+          label="When can you meet? (optional)"
+          placeholder="Tue & Thu, 4–6 PM"
+          maxLength={STUDY_LIMITS.availability}
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="meeting_place"
+          label="Favorite study spot (optional)"
+          placeholder="Atkins Library, 3rd floor"
+          maxLength={STUDY_LIMITS.meeting_place}
+          initial={initial}
+          errors={errors}
+        />
+        <FormActions saveLabel="Save study profile" />
+      </form>
+      {row && (
+        <RemoveForm
+          action="/profile/study/delete"
+          label="Remove study profile"
+          description="Deletes these details and turns off Study partners."
+        />
+      )}
+    </CompanionLayout>
+  );
+}
+
 // ---------- Summary on the profile page ----------
+
+type Card = {
+  type: Exclude<CompanionType, "friends">;
+  title: string;
+  href: string;
+  details: [string, string | null | undefined][] | null;
+};
+
+const studyDetails = (row: StudyProfile): Card["details"] => [
+  ["Subject", row.subject],
+  ["Courses", row.course],
+  ["Meets", row.availability],
+  ["Study spot", row.meeting_place],
+];
 
 export function LookingForOverview({
   companionTypes = [],
-}: Pick<PageProps, "companionTypes">) {
+  studyProfile,
+}: Pick<PageProps, "companionTypes" | "studyProfile">) {
+  const cards: Card[] = [
+    {
+      type: "study",
+      title: "Study partner profile",
+      href: "/profile/study",
+      details: studyProfile ? studyDetails(studyProfile) : null,
+    },
+  ];
+  const shown = cards.filter(
+    (card) => companionTypes.includes(card.type) || card.details,
+  );
   const chosen = companionTypes.map((type) => COMPANION_INFO[type].label);
   return (
     <section
@@ -247,6 +446,47 @@ export function LookingForOverview({
           Pick friends, study partners, gaming partners, or dating so Niners
           can find you for the right things.
         </p>
+      )}
+      {shown.length > 0 && (
+        <div className="companion-cards">
+          {shown.map((card) => {
+            const on = companionTypes.includes(card.type);
+            const status = !on ? "paused" : card.details ? "active" : "setup";
+            return (
+              <article key={card.type} className="companion-card">
+                <header>
+                  <h3>{card.title}</h3>
+                  <span className={`companion-status is-${status}`}>
+                    {status === "active"
+                      ? "On"
+                      : status === "paused"
+                        ? "Paused"
+                        : "Not set up"}
+                  </span>
+                </header>
+                {card.details ? (
+                  <dl className="companion-details">
+                    {card.details
+                      .filter(([, value]) => value)
+                      .map(([label, value]) => (
+                        <div key={label}>
+                          <dt>{label}</dt>
+                          <dd>{value}</dd>
+                        </div>
+                      ))}
+                  </dl>
+                ) : (
+                  <p className="companion-card-note">
+                    Add a few details so the right people can find you.
+                  </p>
+                )}
+                <a className="finder-btn finder-btn-secondary" href={card.href}>
+                  {card.details ? "Edit" : "Set up"}
+                </a>
+              </article>
+            );
+          })}
+        </div>
       )}
     </section>
   );

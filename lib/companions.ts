@@ -18,7 +18,18 @@ export async function companionTypesFor(db: Db, userId: number) {
 
 /** Everything the profile page shows about what a student is looking for. */
 export async function companionData(db: Db, userId: number) {
-  return { companionTypes: await companionTypesFor(db, userId) };
+  const [companionTypes, studyProfile] = await Promise.all([
+    companionTypesFor(db, userId),
+    db
+      .selectFrom("study_finder")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .executeTakeFirst(),
+  ]);
+  return {
+    companionTypes,
+    studyProfile: studyProfile ?? null,
+  };
 }
 
 /** Turns dating off, e.g. when age drops below 18. */
