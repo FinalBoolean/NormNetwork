@@ -8,14 +8,20 @@ import { HttpError } from "../middleware/errors.js";
 import { companionTypesFor } from "../lib/companions.js";
 import {
   validateCompanionTypes,
+  validateDatingPreferences,
   validateGamingProfile,
   validateStudyProfile,
 } from "../lib/companion-validation.js";
-import type { CompanionType } from "../src/companions.js";
+import {
+  COMPANION_INFO,
+  MIN_DATING_AGE,
+  type CompanionType,
+} from "../src/companions.js";
 import { context, wantsJson } from "./profiles.js";
 
 // What students are looking for, and the profile for each kind of companion.
-// Mounted at /profile. Tables: companion_types, study_finder, gaming_finder
+// Mounted at /profile. Tables: companion_types, study_finder, gaming_finder,
+// dating_preferences
 export const companionsRouter = Router();
 companionsRouter.use(requireAuth);
 
@@ -144,8 +150,9 @@ interface PartnerProfile<Row, Values> {
   page: string;
   title: string;
   /** Prop name the React page reads the saved row from. */
-  prop: "studyProfile" | "gamingProfile";
+  prop: "studyProfile" | "gamingProfile" | "datingPreferences";
   fields: readonly string[];
+  minAge?: number;
   validate(body: unknown): { values: Values; errors: Errors };
   find(db: Db, userId: number): Promise<Row | undefined>;
   save(db: Db, userId: number, values: Values): Promise<Row>;
@@ -155,6 +162,14 @@ interface PartnerProfile<Row, Values> {
 function partnerProfileRoutes<Row, Values>(spec: PartnerProfile<Row, Values>) {
   const path = `/${spec.type}`;
   const notFound = `${spec.title} not found`;
+
+  function checkAge(profile: Profile) {
+    if (spec.minAge && profile.age < spec.minAge)
+      throw new HttpError(
+        403,
+        `${COMPANION_INFO[spec.type].label} is only open to students ${spec.minAge} and older.`,
+      );
+  }
 
   function render(
     res: Response,
@@ -181,6 +196,7 @@ function partnerProfileRoutes<Row, Values>(spec: PartnerProfile<Row, Values>) {
         return res.status(404).json({ error: "Profile not found" });
       return res.redirect("/profile");
     }
+    checkAge(profile);
     const row = await spec.find(db, userId);
     if (wantsJson(req))
       return row ? res.json(row) : res.status(404).json({ error: notFound });
@@ -192,6 +208,7 @@ function partnerProfileRoutes<Row, Values>(spec: PartnerProfile<Row, Values>) {
     const { values, errors } = spec.validate(req.body);
     const result = await db.transaction().execute(async (trx) => {
       const profile = await lockProfile(trx, userId);
+      checkAge(profile);
       if (Object.keys(errors).length) return { profile, errors };
       const row = await spec.save(trx, userId, values);
       await trx
@@ -301,6 +318,35 @@ partnerProfileRoutes({
   remove: (db, userId) =>
     db
       .deleteFrom("gaming_finder")
+      .where("user_id", "=", userId)
+      .returningAll()
+      .executeTakeFirst(),
+});
+
+partnerProfileRoutes({
+  type: "dating",
+  page: "dating_preferences",
+  title: "Dating preferences",
+  prop: "datingPreferences",
+  fields: ["interested_in", "age_min", "age_max", "looking_for"],
+  minAge: MIN_DATING_AGE,
+  validate: validateDatingPreferences,
+  find: (db, userId) =>
+    db
+      .selectFrom("dating_preferences")
+      .selectAll()
+      .where("user_id", "=", userId)
+      .executeTakeFirst(),
+  save: (db, userId, values) =>
+    db
+      .insertInto("dating_preferences")
+      .values({ ...values, user_id: userId })
+      .onConflict((oc) => oc.column("user_id").doUpdateSet(values))
+      .returningAll()
+      .executeTakeFirstOrThrow(),
+  remove: (db, userId) =>
+    db
+      .deleteFrom("dating_preferences")
       .where("user_id", "=", userId)
       .returningAll()
       .executeTakeFirst(),

@@ -54,6 +54,7 @@ export default function ProfilePageView({
   companionTypes,
   studyProfile,
   gamingProfile,
+  datingPreferences,
 }: PageProps) {
   const editing = !profile || editingProfile;
   const initial: Record<string, string> = values ?? {
@@ -286,6 +287,7 @@ export default function ProfilePageView({
               companionTypes={companionTypes}
               studyProfile={studyProfile}
               gamingProfile={gamingProfile}
+              datingPreferences={datingPreferences}
             />
           )}
         </main>

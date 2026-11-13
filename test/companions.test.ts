@@ -110,10 +110,16 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     voice_chat: "Mic on",
     availability: "Evenings",
   };
+  const dating = {
+    interested_in: ["Women", "Everyone"],
+    age_min: 19,
+    age_max: 24,
+    looking_for: "Something casual",
+  };
 
   try {
     await t.test("every route needs a session", async () => {
-      for (const path of ["/companions", "/study", "/gaming"]) {
+      for (const path of ["/companions", "/study", "/gaming", "/dating"]) {
         for (const method of ["GET", "PUT", "DELETE"])
           assert.equal(
             (await api(path, method, method === "PUT" ? {} : undefined, ""))
@@ -140,7 +146,8 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       );
       assert.equal((await api("/study", "PUT", study, c)).status, 409);
       assert.equal((await api("/gaming", "PUT", gaming, c)).status, 409);
-      for (const path of ["/companions", "/study", "/gaming"]) {
+      assert.equal((await api("/dating", "PUT", dating, c)).status, 409);
+      for (const path of ["/companions", "/study", "/gaming", "/dating"]) {
         const res = await page(`/profile${path}`, c);
         assert.equal(res.status, 302, path);
         assert.equal(res.headers.get("location"), "/profile");
@@ -371,9 +378,71 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
         ).status,
         400,
       );
+      assert.equal((await api("/dating", "GET", undefined, teen.cookie)).status, 403);
+      assert.equal((await api("/dating", "PUT", dating, teen.cookie)).status, 403);
+      assert.equal((await page("/profile/dating", teen.cookie)).status, 403);
+      assert.equal(
+        (await db.selectFrom("dating_preferences").selectAll().execute()).length,
+        0,
+      );
       const html = await (await page("/profile/companions", teen.cookie)).text();
       assert.ok(inputHas(html, "dating", "disabled"));
       assert.match(html, /Only open to students 18 and older/);
+    });
+
+    await t.test("dating preferences validate the age range and choices", async () => {
+      for (const invalid of [
+        {},
+        { ...dating, interested_in: [] },
+        { ...dating, interested_in: ["Robots"] },
+        { ...dating, age_min: 17 },
+        { ...dating, age_min: "17" },
+        { ...dating, age_max: 101 },
+        { ...dating, age_min: 25, age_max: 20 },
+        { ...dating, age_min: 20.5 },
+        { ...dating, age_min: "1e2" },
+        { ...dating, age_max: null },
+        { ...dating, looking_for: "A green card" },
+      ])
+        assert.equal(
+          (await api("/dating", "PUT", invalid)).status,
+          400,
+          JSON.stringify(invalid),
+        );
+      const res = await api("/dating", "PUT", dating);
+      assert.equal(res.status, 200);
+      const saved = await res.json();
+      // "Everyone" already covers the other choices.
+      assert.equal(saved.interested_in, "Everyone");
+      assert.equal(saved.age_min, 19);
+      const html = decode(await (await page("/profile/dating")).text());
+      assert.match(html, /Only you can see these preferences/);
+      assert.ok(inputHas(html, "Everyone", "checked"));
+      assert.match(html, /value="19"/);
+      assert.equal((await api("/dating", "GET", undefined, bob.cookie)).status, 404);
+    });
+
+    await t.test("the dating form saves, and suggests ages near your own", async () => {
+      const fresh = decode(await (await page("/profile/dating", bob.cookie)).text());
+      assert.match(fresh, /Set up dating/);
+      assert.match(fresh, /name="age_min" value="19"/);
+      assert.match(fresh, /name="age_max" value="25"/);
+      const saved = await form(
+        "/profile/dating",
+        [
+          ["interested_in", "Men"],
+          ["interested_in", "Non-binary people"],
+          ["age_min", "20"],
+          ["age_max", "26"],
+          ["looking_for", "Long-term relationship"],
+        ],
+        bob.cookie,
+      );
+      assert.equal(saved.status, 303);
+      assert.equal(saved.headers.get("location"), "/profile?saved=dating");
+      const row = await (await api("/dating", "GET", undefined, bob.cookie)).json();
+      assert.equal(row.interested_in, "Men, Non-binary people");
+      assert.deepEqual(await types(bob.cookie), ["dating"]);
     });
 
     await t.test("turning a type off pauses it and keeps its details", async () => {
@@ -384,8 +453,9 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       assert.match(html, /Paused/);
     });
 
-    await t.test("an age below 18 turns dating off", async () => {
+    await t.test("an age below 18 turns dating off and deletes preferences", async () => {
       await api("/companions", "PUT", { companion_types: ["friends", "dating"] });
+      assert.equal((await api("/dating")).status, 200);
       const res = await fetch(`${base}/profile`, {
         method: "PATCH",
         headers: {
@@ -397,6 +467,17 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       });
       assert.equal(res.status, 200);
       assert.deepEqual(await types(), ["friends"]);
+      assert.equal(
+        (
+          await db
+            .selectFrom("dating_preferences")
+            .selectAll()
+            .where("user_id", "=", alice.user.id)
+            .execute()
+        ).length,
+        0,
+      );
+      assert.equal((await api("/dating")).status, 403);
       await fetch(`${base}/profile`, {
         method: "PATCH",
         headers: {
@@ -424,11 +505,13 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
       );
       assert.equal((await api("/gaming")).status, 404);
       assert.deepEqual(await types(), []);
+      assert.equal((await api("/dating", "DELETE", undefined, bob.cookie)).status, 200);
+      assert.deepEqual(await types(bob.cookie), []);
     });
 
     await t.test("cross-site changes are rejected", async () => {
       const before = await types();
-      for (const path of ["/profile/companions", "/profile/study"]) {
+      for (const path of ["/profile/companions", "/profile/study", "/profile/dating/delete"]) {
         const res = await page(path, alice.cookie, {
           method: "POST",
           headers: { "sec-fetch-site": "cross-site" },
@@ -440,14 +523,16 @@ test("companion types, partner profiles, and dating preferences", async (t) => {
     });
 
     await t.test("deleting the main profile removes everything", async () => {
-      await api("/companions", "PUT", { companion_types: ["friends"] });
+      await api("/companions", "PUT", { companion_types: ["friends", "dating"] });
       await api("/study", "PUT", study);
       await api("/gaming", "PUT", gaming);
+      await api("/dating", "PUT", dating);
       assert.equal((await api("", "DELETE")).status, 200);
       for (const table of [
         "companion_types",
         "study_finder",
         "gaming_finder",
+        "dating_preferences",
       ] as const)
         assert.equal(
           (

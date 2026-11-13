@@ -1,6 +1,7 @@
 import type { Profile } from "./profile.js";
 import type {
   CompanionType,
+  DatingPreferences,
   GamingProfile,
   StudyProfile,
 } from "./companions.js";
@@ -15,6 +16,7 @@ import HomePage from "./HomePage.js";
 import ErrorPage from "./ErrorPage.js";
 import {
   CompanionTypesPage,
+  DatingPreferencesPage,
   GamingProfilePage,
   StudyProfilePage,
 } from "./CompanionPages.js";
@@ -31,6 +33,7 @@ export interface PageProps {
   companionTypes?: CompanionType[];
   studyProfile?: StudyProfile | null;
   gamingProfile?: GamingProfile | null;
+  datingPreferences?: DatingPreferences | null;
   page: string;
 
   title: string;
@@ -533,6 +536,10 @@ export default function App(props: PageProps) {
 
   if (page === "gaming_profile") {
     return <GamingProfilePage {...props} />;
+  }
+
+  if (page === "dating_preferences") {
+    return <DatingPreferencesPage {...props} />;
   }
 
   if (page === "threads") {

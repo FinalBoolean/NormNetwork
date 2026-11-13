@@ -28,6 +28,7 @@ export const COMPANION_INFO: Record<
 
 /** Dating is only available to students this age or older. */
 export const MIN_DATING_AGE = 18;
+export const MAX_DATING_AGE = 100;
 
 // ---------- Study partner profile ----------
 
@@ -78,6 +79,29 @@ export interface GamingProfile {
   play_style: string | null;
   voice_chat: string | null;
   availability: string | null;
+}
+
+// ---------- Dating preferences ----------
+
+/** "Everyone" matches every gender, including "Other" and "Prefer not to say". */
+export const DATING_INTERESTS = [
+  "Women",
+  "Men",
+  "Non-binary people",
+  "Everyone",
+] as const;
+export const DATING_GOALS = [
+  "Long-term relationship",
+  "Something casual",
+  "Still figuring it out",
+] as const;
+
+export interface DatingPreferences {
+  user_id: number;
+  interested_in: string;
+  age_min: number;
+  age_max: number;
+  looking_for: string;
 }
 
 /** Splits a stored comma-separated list ("PC, Xbox") back into items. */

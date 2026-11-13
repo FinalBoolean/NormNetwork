@@ -58,6 +58,14 @@ export interface Database {
     voice_chat: string | null;
     availability: string | null;
   };
+  dating_preferences: {
+    user_id: number;
+    // Comma-separated, from DATING_INTERESTS in src/companions.ts
+    interested_in: string;
+    age_min: number;
+    age_max: number;
+    looking_for: string;
+  };
   threads: {
     id: Generated<number>;
     profile_id: number;

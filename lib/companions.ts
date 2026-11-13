@@ -18,28 +18,39 @@ export async function companionTypesFor(db: Db, userId: number) {
 
 /** Everything the profile page shows about what a student is looking for. */
 export async function companionData(db: Db, userId: number) {
-  const [companionTypes, studyProfile, gamingProfile] = await Promise.all([
-    companionTypesFor(db, userId),
-    db
-      .selectFrom("study_finder")
-      .selectAll()
-      .where("user_id", "=", userId)
-      .executeTakeFirst(),
-    db
-      .selectFrom("gaming_finder")
-      .selectAll()
-      .where("user_id", "=", userId)
-      .executeTakeFirst(),
-  ]);
+  const [companionTypes, studyProfile, gamingProfile, datingPreferences] =
+    await Promise.all([
+      companionTypesFor(db, userId),
+      db
+        .selectFrom("study_finder")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .executeTakeFirst(),
+      db
+        .selectFrom("gaming_finder")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .executeTakeFirst(),
+      db
+        .selectFrom("dating_preferences")
+        .selectAll()
+        .where("user_id", "=", userId)
+        .executeTakeFirst(),
+    ]);
   return {
     companionTypes,
     studyProfile: studyProfile ?? null,
     gamingProfile: gamingProfile ?? null,
+    datingPreferences: datingPreferences ?? null,
   };
 }
 
-/** Turns dating off, e.g. when age drops below 18. */
+/** Turns dating off and deletes dating preferences, e.g. when age drops below 18. */
 export async function clearDating(db: Db, userId: number) {
+  await db
+    .deleteFrom("dating_preferences")
+    .where("user_id", "=", userId)
+    .execute();
   await db
     .deleteFrom("companion_types")
     .where("user_id", "=", userId)

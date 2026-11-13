@@ -1,9 +1,12 @@
 import {
   COMPANION_INFO,
   COMPANION_TYPES,
+  DATING_GOALS,
+  DATING_INTERESTS,
   GAME_NAME_MAX,
   GAMING_LIMITS,
   MAX_COURSES,
+  MAX_DATING_AGE,
   MAX_GAMES,
   MIN_DATING_AGE,
   PLATFORMS,
@@ -11,6 +14,7 @@ import {
   STUDY_LIMITS,
   VOICE_CHAT,
   type CompanionType,
+  type DatingPreferences,
   type GamingProfile,
   type StudyProfile,
 } from "../src/companions.js";
@@ -118,6 +122,12 @@ function choices<T extends string>(
   }
   if (!picked.size) errors[field] = messages.empty;
   return options.filter((option) => picked.has(option));
+}
+
+function wholeNumber(raw: unknown) {
+  if (typeof raw === "number") return Number.isInteger(raw) ? raw : NaN;
+  if (typeof raw === "string" && /^\d+$/.test(raw.trim())) return Number(raw);
+  return NaN;
 }
 
 const invalidBody = (form: string) => ({ errors: { form } as Errors });
@@ -241,5 +251,43 @@ export function validateGamingProfile(body: unknown) {
     GAMING_LIMITS.availability,
     errors,
   );
+  return { values, errors };
+}
+
+// ---------- Dating preferences ----------
+
+export function validateDatingPreferences(body: unknown) {
+  const values = {} as Omit<DatingPreferences, "user_id">;
+  const input = asBody(body);
+  if (!input) return { values, ...invalidBody("Submit your dating preferences.") };
+  const errors: Errors = {};
+
+  const interests = choices(input, "interested_in", DATING_INTERESTS, errors, {
+    empty: "Choose who you're interested in.",
+    invalid: "Choose from the options in the list.",
+  });
+  // "Everyone" already covers the other options.
+  values.interested_in = interests.includes("Everyone")
+    ? "Everyone"
+    : interests.join(", ");
+
+  const ageMessage = `Enter a whole-number age from ${MIN_DATING_AGE} to ${MAX_DATING_AGE}.`;
+  for (const field of ["age_min", "age_max"] as const) {
+    const age = wholeNumber(input[field]);
+    if (!(age >= MIN_DATING_AGE && age <= MAX_DATING_AGE))
+      errors[field] = ageMessage;
+    else values[field] = age;
+  }
+  if (!errors.age_min && !errors.age_max && values.age_min > values.age_max)
+    errors.age_max = "The oldest age can't be lower than the youngest.";
+
+  values.looking_for =
+    choice(
+      input,
+      "looking_for",
+      DATING_GOALS,
+      errors,
+      "Choose what you're looking for.",
+    ) ?? "";
   return { values, errors };
 }

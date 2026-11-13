@@ -4,9 +4,12 @@ import { BottomNav, FinderSidebar, TopNav, type FinderMode } from "./AppShell.js
 import {
   COMPANION_INFO,
   COMPANION_TYPES,
+  DATING_GOALS,
+  DATING_INTERESTS,
   GAME_NAME_MAX,
   GAMING_LIMITS,
   MAX_COURSES,
+  MAX_DATING_AGE,
   MAX_GAMES,
   MIN_DATING_AGE,
   PLATFORMS,
@@ -15,6 +18,7 @@ import {
   VOICE_CHAT,
   splitList,
   type CompanionType,
+  type DatingPreferences,
   type GamingProfile,
   type StudyProfile,
 } from "./companions.js";
@@ -548,6 +552,96 @@ export function GamingProfilePage(props: PageProps) {
   );
 }
 
+// ---------- Dating preferences ----------
+
+export function DatingPreferencesPage(props: PageProps) {
+  const { profile, datingPreferences: row, values, errors = {} } = props;
+  const age = profile?.age ?? MIN_DATING_AGE;
+  const youngest = Math.max(MIN_DATING_AGE, age - 3);
+  const initial: Values = values ?? {
+    interested_in: row?.interested_in ?? "",
+    age_min: String(row?.age_min ?? youngest),
+    age_max: String(row?.age_max ?? Math.min(MAX_DATING_AGE, Math.max(age + 3, youngest))),
+    looking_for: row?.looking_for ?? "",
+  };
+  const ageInput = {
+    type: "number",
+    inputMode: "numeric",
+    min: MIN_DATING_AGE,
+    max: MAX_DATING_AGE,
+    step: 1,
+    required: true,
+  } as const;
+  return (
+    <CompanionLayout
+      props={props}
+      eyebrow="DATING PREFERENCES"
+      heading={row ? "Edit your dating preferences" : "Set up dating"}
+      intro={`Dating is opt-in and only open to students ${MIN_DATING_AGE} and older. Nothing here changes how you show up for friends, study, or gaming.`}
+    >
+      <p className="companion-privacy">
+        <img
+          src="/assets/finder/shield-note.svg"
+          alt=""
+          width={16}
+          height={16}
+          aria-hidden="true"
+        />
+        Only you can see these preferences. They are kept separate from your
+        main profile.
+      </p>
+      <form
+        className="form profile-form"
+        method="post"
+        action="/profile/dating"
+        noValidate
+      >
+        <ChoiceGroup
+          name="interested_in"
+          legend="Interested in"
+          variant="pill"
+          selected={splitList(initial.interested_in)}
+          errors={errors}
+          choices={DATING_INTERESTS.map((interest) => ({
+            value: interest,
+            label: interest,
+          }))}
+        />
+        <TextField
+          name="age_min"
+          label="Youngest age"
+          {...ageInput}
+          initial={initial}
+          errors={errors}
+        />
+        <TextField
+          name="age_max"
+          label="Oldest age"
+          {...ageInput}
+          initial={initial}
+          errors={errors}
+        />
+        <SelectField
+          name="looking_for"
+          label="Looking for"
+          placeholder="Select one"
+          options={DATING_GOALS}
+          initial={initial}
+          errors={errors}
+        />
+        <FormActions saveLabel="Save dating preferences" />
+      </form>
+      {row && (
+        <RemoveForm
+          action="/profile/dating/delete"
+          label="Remove dating preferences"
+          description="Deletes these preferences and turns off Dating."
+        />
+      )}
+    </CompanionLayout>
+  );
+}
+
 // ---------- Summary on the profile page ----------
 
 type Card = {
@@ -555,6 +649,7 @@ type Card = {
   title: string;
   href: string;
   details: [string, string | null | undefined][] | null;
+  note?: string;
 };
 
 const studyDetails = (row: StudyProfile): Card["details"] => [
@@ -575,11 +670,21 @@ const gamingDetails = (row: GamingProfile): Card["details"] => [
   ["Plays", row.availability],
 ];
 
+const datingDetails = (row: DatingPreferences): Card["details"] => [
+  ["Interested in", row.interested_in],
+  ["Ages", `${row.age_min}–${row.age_max}`],
+  ["Looking for", row.looking_for],
+];
+
 export function LookingForOverview({
   companionTypes = [],
   studyProfile,
   gamingProfile,
-}: Pick<PageProps, "companionTypes" | "studyProfile" | "gamingProfile">) {
+  datingPreferences,
+}: Pick<
+  PageProps,
+  "companionTypes" | "studyProfile" | "gamingProfile" | "datingPreferences"
+>) {
   const cards: Card[] = [
     {
       type: "study",
@@ -592,6 +697,13 @@ export function LookingForOverview({
       title: "Gaming partner profile",
       href: "/profile/gaming",
       details: gamingProfile ? gamingDetails(gamingProfile) : null,
+    },
+    {
+      type: "dating",
+      title: "Dating preferences",
+      href: "/profile/dating",
+      details: datingPreferences ? datingDetails(datingPreferences) : null,
+      note: "Only you can see these.",
     },
   ];
   const shown = cards.filter(
@@ -655,6 +767,9 @@ export function LookingForOverview({
                   <p className="companion-card-note">
                     Add a few details so the right people can find you.
                   </p>
+                )}
+                {card.details && card.note && (
+                  <p className="companion-card-note">{card.note}</p>
                 )}
                 <a className="finder-btn finder-btn-secondary" href={card.href}>
                   {card.details ? "Edit" : "Set up"}

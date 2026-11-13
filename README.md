@@ -47,6 +47,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | What you're looking for | `/profile/companions` | Working, saves to the database (login required) |
 | Study partner profile | `/profile/study` | Working, saves to the database (login required) |
 | Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
+| Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
@@ -55,7 +56,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 
 ### Still to build
 - Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
-- Show real students on the finder pages and let students search them. Study and gaming partner profiles can now be saved; the finder pages still show sample data
+- Show real students on the finder pages and let students search them. Study and gaming partner profiles and dating preferences can now be saved; the finder pages still show sample data
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
@@ -101,7 +102,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 
 ## Database
 
-The database has twelve tables, created by the migrations in `migrations/`:
+The database has thirteen tables, created by the migrations in `migrations/`:
 
 | Table | Purpose |
 |---|---|
@@ -112,6 +113,7 @@ The database has twelve tables, created by the migrations in `migrations/`:
 | `friend_finder` | Friend Finder entries |
 | `study_finder` | Study partner profiles |
 | `gaming_finder` | Gaming partner profiles |
+| `dating_preferences` | Dating preferences (18+ only) |
 | `threads` | Public threads |
 | `threads_reply` | Replies to threads |
 | `friend_request` | Friend requests and their status |
@@ -120,7 +122,7 @@ The database has twelve tables, created by the migrations in `migrations/`:
 
 ![Entity relationship diagram](erd.png)
 
-The diagram was made in Sprint 1, so it doesn't show the `sessions`, `profile_photos`, or `companion_types` tables,
+The diagram was made in Sprint 1, so it doesn't show the `sessions`, `profile_photos`, `companion_types`, or `dating_preferences` tables,
 or the columns migrations 013 and 014 added to `study_finder` and `gaming_finder`.
 
 ## Setup/Run Instructions
@@ -267,13 +269,17 @@ Partner profiles hold the details for each companion type:
 |---|---|---|
 | Study partner | `/profile/study` | subject, courses (up to 5 codes like `ITSC 3155`), what you need help with, when you can meet, favorite study spot |
 | Gaming partner | `/profile/gaming` | games (up to 5), platforms, rank (blank = unranked), main role, main character, play style, comms, when you play |
+| Dating preferences | `/profile/dating` | interested in, youngest and oldest age (18–100), looking for |
 
 - Saving one of these profiles turns its companion type on. **Remove** deletes it and
   turns the type off. Unchecking a type on `/profile/companions` only pauses it.
-- **Dating is 18+ only.** Students under 18 can't choose Dating. If a profile edit sets
-  the age below 18, Dating is turned off in the same transaction.
-- Lists (courses, games, platforms) are stored as comma-separated text, cleaned up
-  on save: course codes are normalized to `ITSC 3155` and duplicates are removed.
+- **Dating is 18+ only.** Students under 18 can't choose Dating, open its page, or save
+  preferences (403). If a profile edit sets the age below 18, dating preferences are
+  deleted and Dating is turned off in the same transaction. The database also requires
+  dating age ranges to be within 18–100.
+- Lists (courses, games, platforms, interested in) are stored as comma-separated text,
+  cleaned up on save: course codes are normalized to `ITSC 3155`, duplicates are removed,
+  and "Everyone" replaces the other "interested in" choices.
   Choices and limits are shared between the forms and the server in
   `src/companions.ts`; server checks are in `lib/companion-validation.ts`.
 
@@ -283,7 +289,7 @@ saved main profile, otherwise writes return 409):
 - `GET /profile/companions`: `{ "companion_types": ["friends", "study"] }`
 - `PUT /profile/companions`: replace the choices with `{ "companion_types": [...] }`
   (an array or a comma-separated string)
-- `GET`, `PUT`, `DELETE /profile/study`, `/profile/gaming`: read,
+- `GET`, `PUT`, `DELETE /profile/study`, `/profile/gaming`, `/profile/dating`: read,
   create or replace, and remove each profile. `GET` returns 404 until one is saved.
 
 HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to

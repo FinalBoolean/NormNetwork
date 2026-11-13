@@ -57,10 +57,12 @@ const NOTICES: Record<string, Record<string, string>> = {
     companions: "Saved what you're looking for.",
     study: "Study partner profile saved.",
     gaming: "Gaming partner profile saved.",
+    dating: "Dating preferences saved.",
   },
   removed: {
     study: "Study partner profile removed.",
     gaming: "Gaming partner profile removed.",
+    dating: "Dating preferences removed.",
   },
 };
 
