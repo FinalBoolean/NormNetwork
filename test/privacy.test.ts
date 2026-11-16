@@ -63,6 +63,12 @@ test("profile privacy rules", async (t) => {
     });
   }
 
+  function finderCard(html: string) {
+    const start = html.indexOf('class="finder-card"');
+    assert.ok(start >= 0);
+    return html.slice(start, html.indexOf('class="app-bottomnav"', start));
+  }
+
   function pageData(html: string) {
     const serialized = html.match(
       /<script id="page-data" type="application\/json">(.*?)<\/script>/s,
@@ -264,6 +270,40 @@ test("profile privacy rules", async (t) => {
       const edit = await (await call("/profile?edit=1", alice.cookie)).text();
       assert.match(edit, /Who can open your profile/);
       assert.match(edit, /Only me/);
+    });
+
+    await t.test("Friend Finder opens another student's profile, never your own", async () => {
+      await db
+        .updateTable("profiles")
+        .set({ visibility: "campus", show_bio: true })
+        .where("user_id", "=", alice.user.id)
+        .execute();
+      await db
+        .updateTable("profiles")
+        .set({ visibility: "campus" })
+        .where("user_id", "=", bob.user.id)
+        .execute();
+      const html = await (await call("/finder/friends", bob.cookie)).text();
+      const card = finderCard(html);
+      assert.match(card, /href="\/users\/privacy_alice"/);
+      assert.doesNotMatch(card, /href="\/profile"/);
+      assert.doesNotMatch(card, /Maya/);
+      assert.match(card, /secret-bio-token/);
+
+      await db
+        .updateTable("profiles")
+        .set({ visibility: "private" })
+        .where("user_id", "=", alice.user.id)
+        .execute();
+      const hidden = await (await call("/finder/friends", bob.cookie)).text();
+      assert.doesNotMatch(hidden, /privacy_alice/);
+      assert.doesNotMatch(hidden, /secret-bio-token/);
+      const fallback = finderCard(hidden);
+      assert.doesNotMatch(fallback, /href="\/profile"/);
+      assert.match(fallback, /href="\/discover"/);
+
+      const own = await (await call("/finder/friends", alice.cookie)).text();
+      assert.doesNotMatch(finderCard(own), /href="\/users\/privacy_alice"/);
     });
 
     await t.test("the database rejects an unknown visibility", async () => {

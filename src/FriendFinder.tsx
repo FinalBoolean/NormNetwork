@@ -6,10 +6,25 @@ import {
   TopNav,
   type SessionUser,
 } from "./AppShell.js";
+import type { PublicProfile } from "./profile.js";
 
 type FriendFinderProps = {
   currentUser?: SessionUser | null;
   currentPath?: string;
+  person?: PublicProfile;
+};
+
+type Card = {
+  name: string;
+  age?: number;
+  year: string;
+  major: string;
+  bio?: string | null;
+  interests: readonly string[];
+  hangout?: string;
+  sharedCount?: number;
+  portrait: string | null;
+  profileHref: string;
 };
 
 const FILTERS = ["For you", "Music", "Outdoors"] as const;
@@ -24,14 +39,30 @@ const DEMO = {
   hangout: "Usually at the Botanical Gardens",
   sharedCount: 3,
   portrait: "/assets/finder/maya-portrait.png",
-  profileHref: "/profile",
 } as const;
+
+function cardFor(person?: PublicProfile): Card {
+  if (!person) return { ...DEMO, profileHref: "/discover" };
+  return {
+    name: person.username,
+    age: person.age,
+    year: person.class,
+    major: person.major,
+    bio: person.bio,
+    interests: [],
+    portrait: person.profile_picture,
+    profileHref: `/users/${encodeURIComponent(person.username)}`,
+  };
+}
 
 export default function FriendFinderPage({
   currentUser: user,
   currentPath = "",
+  person,
 }: FriendFinderProps) {
   const [filter, setFilter] = useState<(typeof FILTERS)[number]>("For you");
+  const card = cardFor(person);
+  const heading = card.age === undefined ? card.name : `${card.name}, ${card.age}`;
 
   return (
     <div className="app-shell finder-page">
@@ -94,23 +125,36 @@ export default function FriendFinderPage({
 
           <article className="finder-card">
             <div className="finder-card-photo">
-              <img src={DEMO.portrait} alt="" className="finder-card-img" />
+              {card.portrait ? (
+                <img
+                  src={card.portrait}
+                  alt=""
+                  className="finder-card-img"
+                  referrerPolicy="no-referrer"
+                />
+              ) : (
+                <span className="finder-card-initials" aria-hidden="true">
+                  {card.name.slice(0, 2).toUpperCase()}
+                </span>
+              )}
               <div className="finder-card-scrim" aria-hidden="true" />
               <div className="finder-photo-progress" aria-hidden="true">
                 <span className="is-on" />
                 <span />
                 <span />
               </div>
-              <p className="finder-shared-pill">
-                <img
-                  src="/assets/finder/sparkles-card.svg"
-                  alt=""
-                  width={15}
-                  height={15}
-                  aria-hidden="true"
-                />
-                {DEMO.sharedCount} interests in common
-              </p>
+              {card.sharedCount !== undefined && (
+                <p className="finder-shared-pill">
+                  <img
+                    src="/assets/finder/sparkles-card.svg"
+                    alt=""
+                    width={15}
+                    height={15}
+                    aria-hidden="true"
+                  />
+                  {card.sharedCount} interests in common
+                </p>
+              )}
 
               <div className="finder-card-mobile-copy">
                 <p className="finder-verified finder-verified-light">
@@ -124,10 +168,8 @@ export default function FriendFinderPage({
                   Verified Niner
                 </p>
                 <div className="finder-name-row">
-                  <h2>
-                    {DEMO.name}, {DEMO.age}
-                  </h2>
-                  <a href={DEMO.profileHref} aria-label="Open profile">
+                  <h2>{heading}</h2>
+                  <a href={card.profileHref} aria-label={`Open ${card.name}'s profile`}>
                     <img
                       src="/assets/finder/arrow-up-right.svg"
                       alt=""
@@ -137,24 +179,28 @@ export default function FriendFinderPage({
                   </a>
                 </div>
                 <p className="finder-meta-light">
-                  {DEMO.year} · {DEMO.major}
+                  {card.year} · {card.major}
                 </p>
-                <p className="finder-bio-light">“{DEMO.bio}”</p>
-                <div className="finder-interest-row finder-interest-row-light">
-                  {DEMO.interests.map((tag) => (
-                    <span key={tag}>{tag}</span>
-                  ))}
-                </div>
-                <p className="finder-hangout-light">
-                  <img
-                    src="/assets/finder/map-pin-white.svg"
-                    alt=""
-                    width={14}
-                    height={14}
-                    aria-hidden="true"
-                  />
-                  {DEMO.hangout}
-                </p>
+                {card.bio && <p className="finder-bio-light">“{card.bio}”</p>}
+                {card.interests.length > 0 && (
+                  <div className="finder-interest-row finder-interest-row-light">
+                    {card.interests.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </div>
+                )}
+                {card.hangout && (
+                  <p className="finder-hangout-light">
+                    <img
+                      src="/assets/finder/map-pin-white.svg"
+                      alt=""
+                      width={14}
+                      height={14}
+                      aria-hidden="true"
+                    />
+                    {card.hangout}
+                  </p>
+                )}
               </div>
             </div>
 
@@ -171,32 +217,34 @@ export default function FriendFinderPage({
                   Verified Niner
                 </p>
                 <div className="finder-identity">
-                  <h2>
-                    {DEMO.name}, {DEMO.age}
-                  </h2>
+                  <h2>{heading}</h2>
                   <p>
-                    {DEMO.year} · {DEMO.major}
+                    {card.year} · {card.major}
                   </p>
                 </div>
-                <p className="finder-bio">“{DEMO.bio}”</p>
-                <div className="finder-bond">
-                  <p className="finder-bond-label">WE COULD BOND OVER</p>
-                  <div className="finder-interest-row">
-                    {DEMO.interests.map((tag) => (
-                      <span key={tag}>{tag}</span>
-                    ))}
+                {card.bio && <p className="finder-bio">“{card.bio}”</p>}
+                {card.interests.length > 0 && (
+                  <div className="finder-bond">
+                    <p className="finder-bond-label">WE COULD BOND OVER</p>
+                    <div className="finder-interest-row">
+                      {card.interests.map((tag) => (
+                        <span key={tag}>{tag}</span>
+                      ))}
+                    </div>
                   </div>
-                </div>
-                <p className="finder-hangout">
-                  <img
-                    src="/assets/finder/map-pin.svg"
-                    alt=""
-                    width={20}
-                    height={20}
-                    aria-hidden="true"
-                  />
-                  {DEMO.hangout}
-                </p>
+                )}
+                {card.hangout && (
+                  <p className="finder-hangout">
+                    <img
+                      src="/assets/finder/map-pin.svg"
+                      alt=""
+                      width={20}
+                      height={20}
+                      aria-hidden="true"
+                    />
+                    {card.hangout}
+                  </p>
+                )}
               </div>
 
               <div className="finder-actions-desktop">
@@ -209,7 +257,7 @@ export default function FriendFinderPage({
                     <img src="/assets/finder/connect.svg" alt="" width={20} height={20} />
                     Connect
                   </button>
-                  <a href={DEMO.profileHref} className="finder-btn finder-btn-secondary">
+                  <a href={card.profileHref} className="finder-btn finder-btn-secondary">
                     <img
                       src="/assets/finder/profile-info.svg"
                       alt=""
@@ -253,7 +301,7 @@ export default function FriendFinderPage({
               </div>
               <div className="finder-swipe-action">
                 <a
-                  href={DEMO.profileHref}
+                  href={card.profileHref}
                   className="finder-icon-btn"
                   aria-label="Profile"
                 >
@@ -281,7 +329,9 @@ export default function FriendFinderPage({
 
           <div className="finder-guidance">
             <p>A new friendship starts with a hello.</p>
-            <a href={DEMO.profileHref}>View Maya’s full profile →</a>
+            <a href={card.profileHref}>
+              {person ? `View ${card.name}’s full profile →` : "Browse Niners on Discover →"}
+            </a>
           </div>
         </main>
       </div>
