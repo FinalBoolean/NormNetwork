@@ -1,18 +1,19 @@
 import { useState } from "react";
 import { BottomNav, TopNav, type SessionUser } from "./AppShell.js";
-
+ 
 type FriendsPageProps = {
   currentUser?: SessionUser | null;
   currentPath?: string;
+  notice?: string;
 };
-
+ 
 const SECTIONS = [
   { key: "friends", label: "Friends", icon: "/assets/friends/friends-list.svg", count: 2 },
   { key: "requests", label: "Requests", icon: "/assets/friends/requests.svg", count: 1 },
 ] as const;
-
+ 
 type SectionKey = (typeof SECTIONS)[number]["key"];
-
+ 
 const CIRCLE = [
   {
     name: "Aisha Rahman",
@@ -25,17 +26,18 @@ const CIRCLE = [
     avatar: "/assets/friends/leo.png",
   },
 ] as const;
-
+ 
 export default function FriendsPageView({
   currentUser: user,
   currentPath = "",
+  notice,
 }: FriendsPageProps) {
   const [section, setSection] = useState<SectionKey>("friends");
-
+ 
   return (
     <div className="app-shell finder-page">
       <TopNav user={user} currentPath={currentPath} />
-
+ 
       <div className="finder-workspace">
         <aside className="finder-sidebar friends-sidebar">
           <div className="finder-sidebar-group">
@@ -53,7 +55,7 @@ export default function FriendsPageView({
               </button>
             ))}
           </div>
-
+ 
           <div className="finder-campus-card">
             <img
               src="/assets/friends/lock.svg"
@@ -67,20 +69,26 @@ export default function FriendsPageView({
               Your hangouts and details are only visible to Niners you accept.
             </p>
           </div>
-
+ 
           <div className="finder-sidebar-links">
             <p>Community Guidelines</p>
             <p>Privacy Policy · Terms of Service</p>
           </div>
         </aside>
-
+ 
         <main className="finder-main friends-main">
           <header className="finder-heading">
             <p className="finder-eyebrow">YOUR CONNECTIONS</p>
             <h1>Friends</h1>
             <p className="finder-subhead">Requests, replies, and your circle.</p>
           </header>
-
+ 
+          {notice && (
+            <p className="profile-saved-notice" role="status">
+              {notice}
+            </p>
+          )}
+ 
           <div className="friends-search">
             <img src="/assets/friends/search.svg" alt="" width={20} height={20} aria-hidden="true" />
             <input
@@ -89,7 +97,7 @@ export default function FriendsPageView({
               aria-label="Search your friends"
             />
           </div>
-
+ 
           <section className="friends-section">
             <h2 className="friends-section-title">
               <img src="/assets/friends/requests.svg" alt="" width={20} height={20} aria-hidden="true" />
@@ -119,7 +127,7 @@ export default function FriendsPageView({
               </div>
             </article>
           </section>
-
+ 
           <section className="friends-section">
             <h2 className="friends-section-title">Sent requests</h2>
             <article className="friend-row">
@@ -140,7 +148,7 @@ export default function FriendsPageView({
               </span>
             </article>
           </section>
-
+ 
           <section className="friends-section">
             <h2 className="friends-section-title">
               <img src="/assets/friends/friends-list.svg" alt="" width={20} height={20} aria-hidden="true" />
@@ -170,14 +178,14 @@ export default function FriendsPageView({
               </article>
             ))}
           </section>
-
+ 
           <p className="finder-note">
             <img src="/assets/friends/lock-sm.svg" alt="" width={16} height={16} aria-hidden="true" />
             Only friends can see your hangouts.
           </p>
         </main>
       </div>
-
+ 
       <BottomNav currentPath={currentPath} />
     </div>
   );
