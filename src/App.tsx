@@ -7,6 +7,7 @@ import type {
 } from "./companions.js";
 import type { StudyFinderData } from "./study-finder.js";
 import type { GamingFinderData } from "./gaming-finder.js";
+import type { FinderData } from "./finder.js";
 import type { ConnectionsData, DiscoveryData } from "./discovery.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
@@ -42,6 +43,7 @@ export interface PageProps {
   studyProfile?: StudyProfile | null;
   gamingProfile?: GamingProfile | null;
   datingPreferences?: DatingPreferences | null;
+  finder?: FinderData;
   studyFinder?: StudyFinderData;
   gamingFinder?: GamingFinderData;
   page: string;

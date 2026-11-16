@@ -26,7 +26,7 @@ export function positiveId(value: unknown, label = "Profile ID") {
 export function returnPath(value: unknown, fallback: string) {
   if (typeof value !== "string") return fallback;
   // Only these local pages may receive a form redirect, including search/page state.
-  if (/^\/(discover|friends)(\?[^\r\n#\\]*)?$/.test(value)) return value;
+  if (/^\/(discover|friends|finder\/(friends|study|gaming))(\?[^\r\n#\\]*)?$/.test(value)) return value;
   return fallback;
 }
 

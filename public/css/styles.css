@@ -2677,3 +2677,8 @@ a.finder-all-filters { text-decoration: none; }
   .discovery-card { padding: 20px; }
   .discovery-profile-prompt .finder-btn { width: 100%; }
 }
+
+/* Friend Finder with real students */
+.finder-connect-form { display: contents; }
+.finder-card-img.person-avatar-placeholder { font-size: 72px; letter-spacing: -3px; }
+.finder-main > .profile-saved-notice { margin: 0; }

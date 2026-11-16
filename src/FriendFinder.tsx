@@ -1,4 +1,4 @@
-﻿import { useState } from "react";
+import { useState } from "react";
 import {
   BottomNav,
   FinderSidebar,
@@ -267,18 +267,18 @@ export default function FriendFinderPage({
                     Profile
                   </a>
                 </div>
-                <p className="finder-note">
+                <p className="finder-note finder-note-center">
                   <img
                     src="/assets/finder/shield-note.svg"
                     alt=""
-                    width={16}
-                    height={16}
+                    width={12}
+                    height={12}
                     aria-hidden="true"
                   />
-                  Real students. No dating pressure.
-                </p>
-              </div>
-            </div>
+                          Real students. No dating pressure.
+                      </p>
+                    </div>
+                  </div>
           </article>
 
           <div className="finder-actions-mobile">
