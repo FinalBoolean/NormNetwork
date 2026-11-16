@@ -152,6 +152,12 @@ export function validateCompanionTypes(body: unknown, age: number) {
 
 const COURSE_CODE = /^([A-Za-z]{3,4})[\s-]*(\d{4}[A-Za-z]?)$/;
 
+/** "itsc3155" or "ITSC-3155" becomes "ITSC 3155". Returns null for anything else. */
+export function normalizeCourseCode(input: string) {
+  const match = COURSE_CODE.exec(input.trim());
+  return match ? `${match[1].toUpperCase()} ${match[2].toUpperCase()}` : null;
+}
+
 export function validateStudyProfile(body: unknown) {
   const values = {} as Omit<StudyProfile, "user_id">;
   const input = asBody(body);
@@ -171,12 +177,12 @@ export function validateStudyProfile(body: unknown) {
   else {
     const codes = new Set<string>();
     for (const course of courses) {
-      const match = COURSE_CODE.exec(course);
-      if (!match) {
+      const code = normalizeCourseCode(course);
+      if (!code) {
         errors.course = `"${course.slice(0, 20)}" isn't a course code. Use the format ITSC 3155.`;
         break;
       }
-      codes.add(`${match[1].toUpperCase()} ${match[2].toUpperCase()}`);
+      codes.add(code);
     }
     values.course = [...codes].join(", ");
   }
