@@ -12,7 +12,7 @@ import {
   gamingFinderHref,
   type GamingFinderData,
   type GamingMatch,
-} from "./gamingFinder.js";
+} from "./gaming-finder.js";
 
 type GamingFinderProps = {
   currentUser?: SessionUser | null;

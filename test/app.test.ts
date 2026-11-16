@@ -61,7 +61,7 @@ describe("app", () => {
   });
 
   test("pages for logged-in users redirect to login", async () => {
-    for (const path of ["/profile", "/friends", "/finder/study", "/finder/gaming"]) {
+    for (const path of ["/profile", "/friends", "/discover", "/finder/study", "/finder/gaming"]) {
       const res = await fetch(`${baseUrl}${path}`, { redirect: "manual" });
       assert.equal(res.status, 302, path);
       assert.equal(

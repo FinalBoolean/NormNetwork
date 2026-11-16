@@ -4,7 +4,7 @@ import { splitList } from "../src/companions.js";
 import {
   STUDY_FINDER_PAGE_SIZE,
   type StudyMatch,
-} from "../src/studyFinder.js";
+} from "../src/study-finder.js";
 import { normalizeCourseCode } from "./companion-validation.js";
 import { LIST_SEPARATOR as COURSE_SEPARATOR, likePattern } from "./finder-query.js";
 import { PHOTO_URL } from "./profile-photo.js";

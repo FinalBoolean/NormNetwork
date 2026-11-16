@@ -11,7 +11,7 @@ import {
   studyFinderHref,
   type StudyFinderData,
   type StudyMatch,
-} from "./studyFinder.js";
+} from "./study-finder.js";
 
 type StudyFinderProps = {
   currentUser?: SessionUser | null;

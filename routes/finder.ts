@@ -14,11 +14,11 @@ import {
   gamingFinderViewer,
   gamingPartnerPhoto,
 } from "../lib/gaming-finder.js";
-import { STUDY_SEARCH_MAX, type StudyFinderData } from "../src/studyFinder.js";
+import { STUDY_SEARCH_MAX, type StudyFinderData } from "../src/study-finder.js";
 import {
   GAMING_SEARCH_MAX,
   type GamingFinderData,
-} from "../src/gamingFinder.js";
+} from "../src/gaming-finder.js";
 import { GAME_NAME_MAX, PLATFORMS } from "../src/companions.js";
 import { context, wantsJson } from "./profiles.js";
 

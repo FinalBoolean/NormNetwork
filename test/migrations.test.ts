@@ -4,9 +4,9 @@ import test from "node:test";
 import { NO_MIGRATIONS } from "kysely/migration";
 import { createMigrator } from "../db/migrator.js";
 import { createTestDatabase } from "./helpers/db.js";
-
-const MIGRATION_COUNT = 15;
-
+ 
+const MIGRATION_COUNT = 16;
+ 
 test("migrations apply, enforce relationships, roll back, and reapply", async () => {
   const db = createTestDatabase();
   const migrator = createMigrator(db);
@@ -192,6 +192,28 @@ test("migrations apply, enforce relationships, roll back, and reapply", async ()
       .returningAll()
       .executeTakeFirstOrThrow();
     assert.equal(request.status, "pending");
+    // Friend request rules (migration 016)
+    await assert.rejects(
+      db
+        .insertInto("friend_request")
+        .values({ sender_id: other.id, receiver_id: profile.id })
+        .execute(),
+      { code: "23505" },
+    );
+    await assert.rejects(
+      db
+        .insertInto("friend_request")
+        .values({ sender_id: profile.id, receiver_id: profile.id })
+        .execute(),
+      { code: "23514" },
+    );
+    await assert.rejects(
+      db
+        .insertInto("friend_request")
+        .values({ sender_id: profile.id, receiver_id: other.id, status: "bogus" })
+        .execute(),
+      { code: "23514" },
+    );
     await db
       .insertInto("friends")
       .values({ profile_a_id: profile.id, profile_b_id: other.id })

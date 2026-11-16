@@ -4,7 +4,7 @@ import { splitList } from "../src/companions.js";
 import {
   GAMING_FINDER_PAGE_SIZE,
   type GamingMatch,
-} from "../src/gamingFinder.js";
+} from "../src/gaming-finder.js";
 import { LIST_SEPARATOR, likePattern } from "./finder-query.js";
 import { PHOTO_URL } from "./profile-photo.js";
 
