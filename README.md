@@ -48,6 +48,7 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Study partner profile | `/profile/study` | Working, saves to the database (login required) |
 | Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
 | Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
+| Another student's profile | `/users/:username` | Working for signed-in students; privacy rules apply |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
@@ -107,7 +108,7 @@ The database has thirteen tables, created by the migrations in `migrations/`:
 | Table | Purpose |
 |---|---|
 | `users` | Accounts: username, email, and password hash |
-| `profiles` | Each student's main profile |
+| `profiles` | Each student's main profile, including who can see it |
 | `profile_photos` | Validated profile photo uploads |
 | `companion_types` | What each student is looking for: friends, study, gaming, dating |
 | `friend_finder` | Friend Finder entries |
@@ -209,7 +210,7 @@ Database code stays server-side. Never import `db/` into browser components or
 expose `DATABASE_URL` in a `VITE_` variable. `db/types.ts` describes the current
 schema; historical migrations use `Kysely<unknown>` independently of that schema.
 Existing migration basenames are unchanged, so databases keep their
-migration history. Migration 011 adds storage for uploaded profile photos. Run `npm run db:migrate` to apply any pending migrations.
+migration history. Migration 011 adds storage for uploaded profile photos. Migration 017 adds profile privacy settings. Run `npm run db:migrate` to apply any pending migrations.
 
 Tests default to isolated PGlite databases. Only point `TEST_DATABASE_URL` at a
 dedicated disposable database: the tests roll back the entire schema.
@@ -248,6 +249,18 @@ external photo URL input remains supported for compatibility; the UI uses upload
 Run `npm run db:migrate` before uploading photos. This is file validation, not
 content moderation or verification that the photo depicts the account owner.
 Hangouts and interests are not part of this profile form.
+
+### Profile privacy
+
+A profile's `visibility` controls who can open it:
+
+- **Only me** (the default, including profiles created before this setting existed): other students get the same 404 as a missing profile, and the photo is not served to them.
+- **Campus**: any signed-in student can open `/users/:username`.
+- **Friends**: other students see the username, class standing, major, and photo. Age, gender, and bio are included only after a friendship is accepted.
+
+`show_age`, `show_gender`, and `show_bio` hide those details from everyone except the owner, including friends. Major, class standing, username, and photo stay visible whenever the profile itself is visible. Email is never included. Unknown visibility values are treated as private. You always see and edit your full profile at `/profile`.
+
+`GET /users/:username` returns that view as HTML, or as JSON with `Accept: application/json`. `GET /users/:username/photo` serves an uploaded photo only when the viewer is allowed to open the profile. Both routes require a login. Opening your own username in a browser returns you to `/profile`.
 
 Major choices are a checked-in snapshot of UNC Charlotte's official bachelor's,
 master's and doctoral program titles, with duplicates and certificates excluded:

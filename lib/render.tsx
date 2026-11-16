@@ -23,6 +23,7 @@ export function reactPages(clientScript?: string): RequestHandler {
         currentUser: res.locals.currentUser,
 
         profile: data.profile,
+        person: data.person,
         editingProfile: data.editingProfile,
         companionTypes: data.companionTypes,
         studyProfile: data.studyProfile,

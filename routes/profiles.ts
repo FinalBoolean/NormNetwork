@@ -75,6 +75,17 @@ function noticeFor(query: Request["query"]) {
   return undefined;
 }
 
+function submitted(value: unknown) {
+  const raw = Array.isArray(value) ? value.at(-1) : value;
+  if (
+    typeof raw === "string" ||
+    typeof raw === "number" ||
+    typeof raw === "boolean"
+  )
+    return String(raw);
+  return undefined;
+}
+
 function invalid(
   req: Request,
   res: Response,
@@ -91,10 +102,13 @@ function invalid(
     "major",
     "bio",
     "profile_picture",
+    "visibility",
+    "show_age",
+    "show_gender",
+    "show_bio",
   ]) {
-    const value = req.body?.[key];
-    if (typeof value === "string" || typeof value === "number")
-      values[key] = String(value);
+    const value = submitted(req.body?.[key]);
+    if (value !== undefined) values[key] = value;
   }
   res.status(status);
   renderProfile(res, profile, true, values, errors);
