@@ -1,10 +1,12 @@
 import { Router, type Request, type Response } from "express";
-import { sql, type Kysely } from "kysely";
-import type { Database } from "../db/types.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errors.js";
 import { PHOTO_URL } from "../lib/profile-photo.js";
-import { presentProfile, type ProfileRecord } from "../lib/profile-privacy.js";
+import {
+  findProfileRecord,
+  friendProfileIds,
+  presentProfile,
+} from "../lib/profile-privacy.js";
 import { USERNAME_PATTERN } from "../lib/validation.js";
 
 // Another student's profile. Visibility is decided in lib/profile-privacy.ts.
@@ -33,68 +35,19 @@ function missing(req: Request, res: Response): void {
   throw new HttpError(404, "Profile not found");
 }
 
-async function friendProfileIds(db: Kysely<Database>, userId: number) {
-  const viewer = await db
-    .selectFrom("profiles")
-    .select("id")
-    .where("user_id", "=", userId)
-    .executeTakeFirst();
-  const ids = new Set<number>();
-  if (!viewer) return ids;
-  const rows = await db
-    .selectFrom("friends")
-    .select(["profile_a_id", "profile_b_id"])
-    .where((eb) =>
-      eb.or([
-        eb("profile_a_id", "=", viewer.id),
-        eb("profile_b_id", "=", viewer.id),
-      ]),
-    )
-    .execute();
-  for (const row of rows) {
-    ids.add(
-      row.profile_a_id === viewer.id ? row.profile_b_id : row.profile_a_id,
-    );
-  }
-  return ids;
-}
-
-async function loadProfile(db: Kysely<Database>, username: string) {
-  if (!USERNAME_PATTERN.test(username)) return undefined;
-  return db
-    .selectFrom("profiles")
-    .innerJoin("users", "users.id", "profiles.user_id")
-    .select([
-      "profiles.id",
-      "profiles.user_id",
-      "profiles.profile_picture",
-      "profiles.bio",
-      "profiles.age",
-      "profiles.class",
-      "profiles.gender",
-      "profiles.major",
-      "profiles.visibility",
-      "profiles.show_age",
-      "profiles.show_gender",
-      "profiles.show_bio",
-      "users.username",
-    ])
-    .where(sql<boolean>`lower(users.username) = ${username.toLowerCase()}`)
-    .executeTakeFirst();
-}
-
 async function visibleProfile(req: Request, res: Response) {
   const { db, userId } = context(req);
   const username = req.params.username;
-  if (typeof username !== "string") return missing(req, res);
-  const row = await loadProfile(db, username);
+  if (typeof username !== "string" || !USERNAME_PATTERN.test(username))
+    return missing(req, res);
+  const row = await findProfileRecord(db, username);
   if (!row) return missing(req, res);
-  const person = presentProfile(row as ProfileRecord, {
+  const person = presentProfile(row, {
     userId,
     friendProfileIds: await friendProfileIds(db, userId),
   });
   if (!person) return missing(req, res);
-  return { db, row: row as ProfileRecord, person };
+  return { db, row, person };
 }
 
 usersRouter.get("/:username/photo", async (req, res) => {
