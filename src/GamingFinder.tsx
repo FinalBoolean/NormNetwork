@@ -98,7 +98,11 @@ function GamingPartnerCard({ match }: { match: GamingMatch }) {
       <div className="match-body">
         <div className="match-info">
           <div className="finder-identity">
-            <h2 id={headingId}>{match.username}</h2>
+            <h2 id={headingId}>
+              <a href={`/users/${encodeURIComponent(match.username)}`} aria-label={`View ${match.username}'s profile`}>
+                {match.username}
+              </a>
+            </h2>
             <p>
               {match.class} · {match.major}
             </p>
