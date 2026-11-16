@@ -7,6 +7,7 @@ import { finderRouter } from "./finder.js";
 import { threadsRouter } from "./threads.js";
 import { friendsRouter } from "./friends.js";
 import { usersRouter } from "./users.js";
+import { discoverRouter } from "./discover.js";
 
 /**
  * Each feature has its own router file. To add a page, add a route to the
@@ -22,3 +23,4 @@ routes.use("/users", usersRouter);
 routes.use("/finder", finderRouter);
 routes.use("/threads", threadsRouter);
 routes.use("/friends", friendsRouter);
+routes.use("/discover", discoverRouter);
