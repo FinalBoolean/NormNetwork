@@ -3,6 +3,64 @@
 ## Description
 Welcome to Norm's Network, a hub for UNCC Students who are looking for people to talk to. Whether it be as a study buddy, a gaming partner, or a friend, NormsNetwork allows UNCC students to create a main profile for finding friends and navigate other parts of app to find the specific part they want and add information depending on the section they chose. Unlike other UNCC social networks, NormsNetwork seamlessly blends everything in one place so UNCC students don't have to go searching through tons of different apps to try and find people to communicate with.
 
+## Sprint 2 Progress
+
+Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 2 turned that into a working app: students can now create an account, sign in, and build a profile, and every main page has a finished design.
+
+### Completed this sprint
+
+**Accounts and authentication** (PR #35)
+- Sign up with a UNC Charlotte email (`@charlotte.edu` or `@uncc.edu`), a unique username, and a password of at least 8 characters
+- Log in with either your email or your username, and log out from the navigation bar
+- Passwords are hashed with scrypt, and sessions are saved in a new `sessions` table and last 7 days
+- Pages that need an account (`/profile`, `/friends`) send logged-out visitors to the login page, then back to the page they wanted
+- Security checks: cross-site form posts are blocked, and a failed login never reveals whether an account exists
+
+**React and TypeScript migration** (PR #36)
+- Converted the whole app from JavaScript to TypeScript in strict mode
+- Pages are now React components rendered on the server and hydrated in the browser, with Vite building the frontend assets
+- Fixed a development server restart loop
+
+**App screens and design** (PR #37)
+- New sign-up and log-in screens
+- Home page that links to each part of the app
+- Designed pages for the Friend Finder, Study Buddy Finder, Gaming Partner Finder, Public Threads, and Friends, with top and bottom navigation
+
+**Profiles** (PR #38)
+- Create, view, edit, and delete your main profile at `/profile`
+- Profile fields: age, class standing, gender, major, bio, and an uploaded profile photo
+- The form is checked on the server and keeps what you typed when a field needs fixing
+- JSON API for profiles: `GET`, `POST`, `PATCH`, and `DELETE /profile`
+
+**Testing and automation**
+- 71 automated tests covering sign-up, login, sessions, logout, security checks, page rendering, profiles, and database migrations
+- GitHub Actions builds the app and runs every test against PostgreSQL 17 on each push and pull request
+- `/health` endpoint reports whether the server can reach the database
+
+### Feature status
+
+| Page | Route | Status |
+|---|---|---|
+| Sign up / Log in | `/signup`, `/login` | Working |
+| Home | `/` | Working |
+| Profile | `/profile` | Working, saves to the database (login required) |
+| What you're looking for | `/profile/companions` | Working, saves to the database (login required) |
+| Study partner profile | `/profile/study` | Working, saves to the database (login required) |
+| Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
+| Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
+| Discover | `/discover` | Search student profiles and send connection requests (login required) |
+| Friend Finder | `/finder/friends` | Design complete, shows sample data |
+| Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
+| Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
+| Public Threads | `/threads` | Design complete, shows sample data |
+| Friends | `/friends` | Incoming and sent requests, accept/decline, and accepted friends (login required) |
+
+### Still to build
+- Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
+- Show real students on the finder pages and let students search them. Study and gaming partner profiles and dating preferences can now be saved; the finder pages still show sample data
+- Posting threads and replies (`threads`, `threads_reply` tables)
+- Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
+
 ## Intended Features
  ### Account & Verification
  - Sign-up with your verified UNC Charlotte email to ensure that only real UNCC students can join
@@ -42,30 +100,69 @@ Welcome to Norm's Network, a hub for UNCC Students who are looking for people to
 - **Node's test runner + PGLite for local testing**
 - **GitHub Actions for automated tests against PostgreSQL**
 
+## Database
+
+The database has thirteen tables, created by the migrations in `migrations/`:
+
+| Table | Purpose |
+|---|---|
+| `users` | Accounts: username, email, and password hash |
+| `profiles` | Each student's main profile |
+| `profile_photos` | Validated profile photo uploads |
+| `companion_types` | What each student is looking for: friends, study, gaming, dating |
+| `friend_finder` | Friend Finder entries |
+| `study_finder` | Study partner profiles |
+| `gaming_finder` | Gaming partner profiles |
+| `dating_preferences` | Dating preferences (18+ only) |
+| `threads` | Public threads |
+| `threads_reply` | Replies to threads |
+| `friend_request` | Friend requests and their status |
+| `friends` | Accepted friendships |
+| `sessions` | Login sessions (added in Sprint 2) |
+
+![Entity relationship diagram](erd.png)
+
+The diagram was made in Sprint 1, so it doesn't show the `sessions`, `profile_photos`, `companion_types`, or `dating_preferences` tables,
+or the columns migrations 013 and 014 added to `study_finder` and `gaming_finder`.
+
 ## Setup/Run Instructions
 ### 1. Clone the repository
+```bash
 git clone https://github.com/FinalBoolean/NormNetwork.git
 cd NormNetwork
+```
 
 ### 2. Install dependencies
+```bash
 npm install
+```
 
 ### 3. Set up environment variables
+```bash
 cp .env.example .env
+```
 
 ### 4. Start the local PostgreSQL database
+```bash
 npm run db:up
+```
 
 ### 5. Run database migrations
+```bash
 npm run db:migrate
+```
 
 ### 6. Start the development server
+```bash
 npm run dev
+```
 Then, open http://localhost:3000/ in your browser.
 
 
 ### Running Tests
+```bash
 npm test
+```
 
 Tests run against an in-memory PostgreSQL (PGlite) locally and a real PostgreSQL in CI. Test files run one at a time because in CI they share a database.
 
@@ -85,7 +182,13 @@ router.get("/edit", requireAuth, (req, res) => { /* req.user.id */ });
 ```
 
 ### Stopping the Database
-docker compose down
+```bash
+npm run db:down
+```
+
+Other database commands:
+- `npm run db:status`: show which migrations have been applied
+- `npm run db:rollback`: undo the most recent migration
 
 ## React and TypeScript development
 
@@ -105,8 +208,8 @@ The existing styling lives in `public/css/styles.css`.
 Database code stays server-side. Never import `db/` into browser components or
 expose `DATABASE_URL` in a `VITE_` variable. `db/types.ts` describes the current
 schema; historical migrations use `Kysely<unknown>` independently of that schema.
-All ten migration basenames are unchanged, so existing databases keep their
-migration history. Run `npm run db:migrate` to apply any pending migrations.
+Existing migration basenames are unchanged, so databases keep their
+migration history. Migration 011 adds storage for uploaded profile photos. Run `npm run db:migrate` to apply any pending migrations.
 
 Tests default to isolated PGlite databases. Only point `TEST_DATABASE_URL` at a
 dedicated disposable database: the tests roll back the entire schema.
@@ -127,7 +230,116 @@ the request body. API clients should send `Accept: application/json`:
 - `DELETE /profile`: delete the current profile. Existing database cascades also
   remove its related finder records, threads/replies, and friendships/requests.
 
-Required creation fields are `age`, `class`, `gender`, and `major`; `bio` and
-`profile_picture` (an HTTP/HTTPS URL) are optional. HTML forms use `POST /profile`
+Required creation fields are `age`, `class`, `gender`, and `major`; `bio` is optional.
+Age must be an integer from 16 to 100. Class standing and gender must match the
+shared choices in `src/profile.ts`. Major uses a searchable selection validated
+against `src/majors.ts` (plus the explicit Undecided status). HTML forms use `POST /profile`
 for creation and `POST /profile/edit` for updates, then redirect to the saved page.
-Profile photo uploads, hangouts, and interests are not part of this profile form.
+After saving a profile, upload a photo using the profile page's file picker.
+`POST /profile/photo` accepts one multipart field named `photo`: JPEG, PNG, or
+WebP, at most 5 MiB and 20 million pixels. The server decodes the content, rejects
+corrupt/animated/unsupported images, applies orientation, resizes to fit 1024 x
+1024, and re-encodes as WebP without metadata. The processed bytes are stored in
+PostgreSQL (`profile_photos`) and cascade-delete with the profile. A replacement
+is atomic and failed uploads preserve the old photo. `GET /profile/photo` serves
+the signed-in user's photo with private/no-store caching. The existing API's
+external photo URL input remains supported for compatibility; the UI uses uploads.
+
+Run `npm run db:migrate` before uploading photos. This is file validation, not
+content moderation or verification that the photo depicts the account owner.
+Hangouts and interests are not part of this profile form.
+
+Major choices are a checked-in snapshot of UNC Charlotte's official bachelor's,
+master's and doctoral program titles, with duplicates and certificates excluded:
+https://assessment.charlotte.edu/accreditation/sacscoc/program-list-with-cip-codes
+The source and retrieval date are recorded in `src/majors.ts`; refresh the list
+when the university changes its offerings.
+
+## What you're looking for, and partner profiles
+
+After saving a main profile, students choose what they're looking for at
+`/profile/companions`: **Friends**, **Study partners**, **Gaming partners**, and/or
+**Dating** (any combination, at least one). New profiles are sent there right after
+they're created. The profile page shows the choices and a card for each partner
+profile, with its status: **On**, **Not set up**, or **Paused** (turned off, details kept).
+
+Partner profiles hold the details for each companion type:
+
+| Profile | Page | Fields |
+|---|---|---|
+| Study partner | `/profile/study` | subject, courses (up to 5 codes like `ITSC 3155`), what you need help with, when you can meet, favorite study spot |
+| Gaming partner | `/profile/gaming` | games (up to 5), platforms, rank (blank = unranked), main role, main character, play style, comms, when you play |
+| Dating preferences | `/profile/dating` | interested in, youngest and oldest age (18–100), looking for |
+
+- Saving one of these profiles turns its companion type on. **Remove** deletes it and
+  turns the type off. Unchecking a type on `/profile/companions` only pauses it.
+- **Dating is 18+ only.** Students under 18 can't choose Dating, open its page, or save
+  preferences (403). If a profile edit sets the age below 18, dating preferences are
+  deleted and Dating is turned off in the same transaction. The database also requires
+  dating age ranges to be within 18–100.
+- Lists (courses, games, platforms, interested in) are stored as comma-separated text,
+  cleaned up on save: course codes are normalized to `ITSC 3155`, duplicates are removed,
+  and "Everyone" replaces the other "interested in" choices.
+  Choices and limits are shared between the forms and the server in
+  `src/companions.ts`; server checks are in `lib/companion-validation.ts`.
+
+JSON API (send `Accept: application/json`; all routes use the signed-in user and need a
+saved main profile, otherwise writes return 409):
+
+- `GET /profile/companions`: `{ "companion_types": ["friends", "study"] }`
+- `PUT /profile/companions`: replace the choices with `{ "companion_types": [...] }`
+  (an array or a comma-separated string)
+- `GET`, `PUT`, `DELETE /profile/study`, `/profile/gaming`, `/profile/dating`: read,
+  create or replace, and remove each profile. `GET` returns 404 until one is saved.
+
+HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to
+`/profile`. Run `npm run db:migrate` to apply the new migrations before using these pages.
+
+## User discovery and connections
+
+Open **Discover** (`/discover`) after signing in to browse saved student profiles.
+Search by username, major, or bio; results show 12 profiles per page and exclude
+your own account. Create your profile at `/profile` before sending or responding
+to requests. Uploaded profile photos are served through authenticated discovery
+URLs; other students' email addresses and account credentials are never included
+in discovery results.
+
+**Connect** sends a request. Both students can see its status in Discover and
+**Friends** (`/friends`); the recipient can accept or decline it. Accepting adds
+each student to the other's circle. Sending the same pending request again does
+not duplicate it, and an incoming request must be answered before sending one
+back. These forms also work without JavaScript.
+
+For JSON responses, send `Accept: application/json`:
+
+- `GET /discover?q=biology&page=1`: profiles, relationship states, and pagination.
+- `GET /friends`: incoming requests, outgoing requests, and accepted friends.
+- `GET /friends/request`: PR #44's incoming-request list, including each request
+  ID and sender's profile details.
+- `GET /friends/list`: PR #44's accepted-friends list.
+- `POST /friends/requests/:profileId`: PR #44's request endpoint, used by
+  Discover's Connect forms. JSON clients receive `{ "message": "Friend request sent!",
+  "requestId": 123 }`. HTML forms return to Discover or Friends after sending.
+- `POST /friends/requests` with `{ "receiver_id": 123 }`: send a request to that
+  **profile ID** (not an account ID).
+- `POST /friends/requests/:id/accept` or `/decline`: respond to a pending request
+  addressed to the signed-in student's profile.
+
+Run `npm run db:migrate` before using connections: migration 016 from PR #45
+enforces valid request statuses, prevents self-requests, and allows only one
+pending request per pair. PR #44's routes and list queries are retained alongside
+PR #45's request API; both send routes use the same transaction-safe helper, and
+the Friends page uses the shared list queries. Uploaded photos in both list APIs
+use the listed student's authenticated photo URL.
+
+Run `npm test` for discovery, connection, authentication, profile, and migration
+coverage, and `npm run build` for TypeScript and browser-build validation. The
+specialized friend, study, and gaming finders remain separate sample screens.
+
+## Team
+
+- [@FinalBoolean](https://github.com/FinalBoolean)
+- [@zagog629](https://github.com/zagog629)
+- [@wilmer-4](https://github.com/wilmer-4)
+- [@scoobig](https://github.com/scoobig)
+- [@elephantcubed](https://github.com/elephantcubed)

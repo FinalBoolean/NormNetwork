@@ -2,9 +2,11 @@ import { Router } from "express";
 import { homeRouter } from "./home.js";
 import { authRouter } from "./auth.js";
 import { profilesRouter } from "./profiles.js";
+import { companionsRouter } from "./companions.js";
 import { finderRouter } from "./finder.js";
 import { threadsRouter } from "./threads.js";
 import { friendsRouter } from "./friends.js";
+import { discoverRouter } from "./discover.js";
 
 /**
  * Each feature has its own router file. To add a page, add a route to the
@@ -15,6 +17,8 @@ export const routes = Router();
 routes.use("/", homeRouter); // /, /health
 routes.use("/", authRouter); // /login, /signup, /logout
 routes.use("/profile", profilesRouter);
+routes.use("/profile", companionsRouter); // /companions, /study, /gaming, /dating
 routes.use("/finder", finderRouter);
 routes.use("/threads", threadsRouter);
 routes.use("/friends", friendsRouter);
+routes.use("/discover", discoverRouter);

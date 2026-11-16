@@ -4,11 +4,11 @@ export type SessionUser = {
   email: string;
 };
 
-export type FinderMode = "friends" | "study" | "gaming";
+export type FinderMode = "discover" | "friends" | "study" | "gaming";
 
 const NAV_ITEMS = [
   {
-    href: "/finder",
+    href: "/discover",
     label: "Discover",
     icon: "/assets/threads/nav-discover.svg",
     activeIcon: "/assets/finder/nav-discover.svg",
@@ -66,11 +66,13 @@ export function TopNav({
       <Brand />
       <nav className="app-topnav-destinations" aria-label="Main">
         {NAV_ITEMS.map((item) => {
-          const active = currentPath.startsWith(item.href);
+          const active = currentPath.startsWith(item.href) ||
+            (item.href === "/discover" && currentPath.startsWith("/finder"));
           return (
             <a
               key={item.href}
               href={item.href}
+              aria-current={active ? "page" : undefined}
               className={`app-topnav-item${active ? " is-active" : ""}`}
             >
               <img
@@ -122,11 +124,13 @@ export function BottomNav({ currentPath }: { currentPath: string }) {
   return (
     <nav className="app-bottomnav" aria-label="Primary">
       {NAV_ITEMS.map((item) => {
-        const active = currentPath.startsWith(item.href);
+        const active = currentPath.startsWith(item.href) ||
+          (item.href === "/discover" && currentPath.startsWith("/finder"));
         return (
           <a
             key={item.href}
             href={item.href}
+            aria-current={active ? "page" : undefined}
             className={`app-bottomnav-item${active ? " is-active" : ""}`}
           >
             <span className="app-bottomnav-icon">
@@ -146,6 +150,13 @@ export function BottomNav({ currentPath }: { currentPath: string }) {
 }
 
 const SIDEBAR_LINKS = [
+  {
+    key: "discover",
+    href: "/discover",
+    label: "All students",
+    icon: "/assets/threads/nav-discover.svg",
+    activeIcon: "/assets/finder/nav-discover.svg",
+  },
   {
     key: "friends",
     href: "/finder/friends",
@@ -169,7 +180,7 @@ const SIDEBAR_LINKS = [
   },
 ] as const;
 
-export function FinderSidebar({ mode }: { mode: FinderMode }) {
+export function FinderSidebar({ mode }: { mode?: FinderMode }) {
   return (
     <aside className="finder-sidebar">
       <div className="finder-sidebar-group">
@@ -180,6 +191,7 @@ export function FinderSidebar({ mode }: { mode: FinderMode }) {
             <a
               key={link.key}
               href={link.href}
+              aria-current={active ? "page" : undefined}
               className={`finder-sidebar-link${active ? " is-active" : ""}`}
             >
               <img
@@ -205,8 +217,8 @@ export function FinderSidebar({ mode }: { mode: FinderMode }) {
         />
         <p className="finder-campus-title">Your campus. Your people.</p>
         <p className="finder-campus-body">
-          One network, just for UNC Charlotte. Every Niner is campus-email
-          verified.
+          One network, just for UNC Charlotte. Discover classmates and find
+          your next connection.
         </p>
       </div>
 
@@ -220,6 +232,7 @@ export function FinderSidebar({ mode }: { mode: FinderMode }) {
 
 export function ModeTabs({ mode }: { mode: FinderMode }) {
   const tabs = [
+    { key: "discover", href: "/discover", label: "All", icon: "/assets/threads/nav-discover.svg" },
     { key: "friends", href: "/finder/friends", label: "Friends", icon: "/assets/study/sidebar-friends.svg" },
     { key: "study", href: "/finder/study", label: "Study", icon: "/assets/finder/sidebar-study.svg" },
     { key: "gaming", href: "/finder/gaming", label: "Gaming", icon: "/assets/finder/sidebar-gaming.svg" },
