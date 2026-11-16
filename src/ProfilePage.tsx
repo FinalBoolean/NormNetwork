@@ -7,7 +7,10 @@ import {
   GENDERS,
   MIN_PROFILE_AGE,
   MAX_PROFILE_AGE,
+  VISIBILITIES,
+  VISIBILITY_OPTIONS,
 } from "./profile.js";
+import type { Profile } from "./profile.js";
 import { MAJOR_OPTIONS, MAJORS_SOURCE } from "./majors.js";
 
 const fields = [
@@ -43,6 +46,23 @@ const fields = [
   },
 ] as const;
 
+const PRIVACY_FLAGS = [
+  ["show_age", "Show my age"],
+  ["show_gender", "Show my gender"],
+  ["show_bio", "Show my bio"],
+] as const;
+
+function hiddenDetailSummary(profile: Profile) {
+  const hidden = [
+    profile.show_age ? null : "age",
+    profile.show_gender ? null : "gender",
+    profile.show_bio ? null : "bio",
+  ].filter((item): item is string => item !== null);
+  if (!hidden.length)
+    return "Age, gender, and bio are shared with people allowed to see them.";
+  return `Hidden from other Niners: ${hidden.join(", ")}.`;
+}
+
 export default function ProfilePageView({
   currentUser: user,
   currentPath = "",
@@ -57,14 +77,27 @@ export default function ProfilePageView({
   datingPreferences,
 }: PageProps) {
   const editing = !profile || editingProfile;
-  const initial: Record<string, string> = values ?? {
+  const initial: Record<string, string> = {
     age: profile ? String(profile.age) : "",
     class: profile?.class ?? "",
     gender: profile?.gender ?? "",
     major: profile?.major ?? "",
     bio: profile?.bio ?? "",
     profile_picture: profile?.profile_picture ?? "",
+    visibility: profile?.visibility ?? "private",
+    show_age: profile?.show_age === false ? "0" : "1",
+    show_gender: profile?.show_gender === false ? "0" : "1",
+    show_bio: profile?.show_bio === false ? "0" : "1",
+    ...(values ?? {}),
   };
+  const visibilityValue = (VISIBILITIES as readonly string[]).includes(
+    initial.visibility,
+  )
+    ? initial.visibility
+    : "private";
+  const privacyOption = VISIBILITY_OPTIONS.find(
+    (option) => option.value === profile?.visibility,
+  );
   return (
     <div className="app-shell finder-page profile-page">
       <TopNav user={user} currentPath={currentPath} />
@@ -225,6 +258,63 @@ export default function ProfilePageView({
                       </p>
                     )}
                   </div>
+                  <fieldset className="privacy-fields">
+                    <legend>Privacy</legend>
+                    <div
+                      className={`field${errors.visibility ? " has-error" : ""}`}
+                    >
+                      <label htmlFor="visibility">Who can open your profile</label>
+                      <select
+                        id="visibility"
+                        name="visibility"
+                        defaultValue={visibilityValue}
+                        aria-invalid={errors.visibility ? true : undefined}
+                        aria-describedby="visibility-rules"
+                      >
+                        {VISIBILITY_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                      {errors.visibility && (
+                        <p className="field-error" id="visibility-error">
+                          {errors.visibility}
+                        </p>
+                      )}
+                    </div>
+                    <ul className="privacy-rules" id="visibility-rules">
+                      {VISIBILITY_OPTIONS.map((option) => (
+                        <li key={option.value}>
+                          <strong>{option.label}.</strong> {option.hint}
+                        </li>
+                      ))}
+                    </ul>
+                    {PRIVACY_FLAGS.map(([name, label]) => (
+                      <label key={name} className="privacy-choice">
+                        <input type="hidden" name={name} value="0" />
+                        <input
+                          type="checkbox"
+                          name={name}
+                          value="1"
+                          defaultChecked={
+                            initial[name] !== "0" && initial[name] !== "false"
+                          }
+                        />
+                        <span>{label}</span>
+                      </label>
+                    ))}
+                    <p className="field-hint">
+                      Unchecked details stay hidden from every other Niner,
+                      including friends. You always see your own full profile.
+                      Your email is never shown.
+                    </p>
+                    {(errors.show_age || errors.show_gender || errors.show_bio) && (
+                      <p className="field-error">
+                        {errors.show_age || errors.show_gender || errors.show_bio}
+                      </p>
+                    )}
+                  </fieldset>
                   <div className="profile-form-actions">
                     <button
                       type="submit"
@@ -262,6 +352,15 @@ export default function ProfilePageView({
                     {profile.bio ||
                       "A few words about you go a long way. Add your interests, favorite campus spots, or what you’re looking for."}
                   </p>
+                </section>
+                <section className="profile-section">
+                  <h2 className="finder-bond-label">PRIVACY</h2>
+                  <p className="profile-about">
+                    {privacyOption
+                      ? `${privacyOption.label}. ${privacyOption.hint}`
+                      : "Only me. Other Niners cannot open your profile."}
+                  </p>
+                  <p className="profile-about">{hiddenDetailSummary(profile)}</p>
                 </section>
                 <section className="profile-section">
                   <h2 className="finder-bond-label">DETAILS</h2>

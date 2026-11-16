@@ -26,6 +26,10 @@ export interface Database {
     class: string;
     gender: string;
     major: string;
+    visibility: Generated<"campus" | "friends" | "private">;
+    show_age: Generated<boolean>;
+    show_gender: Generated<boolean>;
+    show_bio: Generated<boolean>;
   };
   friend_finder: {
     user_id: number;

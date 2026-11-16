@@ -6,6 +6,7 @@ import { companionsRouter } from "./companions.js";
 import { finderRouter } from "./finder.js";
 import { threadsRouter } from "./threads.js";
 import { friendsRouter } from "./friends.js";
+import { usersRouter } from "./users.js";
 import { discoverRouter } from "./discover.js";
 
 /**
@@ -18,6 +19,7 @@ routes.use("/", homeRouter); // /, /health
 routes.use("/", authRouter); // /login, /signup, /logout
 routes.use("/profile", profilesRouter);
 routes.use("/profile", companionsRouter); // /companions, /study, /gaming, /dating
+routes.use("/users", usersRouter);
 routes.use("/finder", finderRouter);
 routes.use("/threads", threadsRouter);
 routes.use("/friends", friendsRouter);

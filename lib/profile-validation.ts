@@ -5,7 +5,24 @@ import {
   GENDERS,
   MIN_PROFILE_AGE,
   MAX_PROFILE_AGE,
+  VISIBILITIES,
+  type ProfileVisibility,
 } from "../src/profile.js";
+
+const FLAG_FIELDS = ["show_age", "show_gender", "show_bio"] as const;
+
+function last(raw: unknown) {
+  return Array.isArray(raw) ? raw.at(-1) : raw;
+}
+
+function flagValue(raw: unknown) {
+  const value = last(raw);
+  if (value === true || value === "true" || value === "1" || value === "on")
+    return true;
+  if (value === false || value === "false" || value === "0" || value === "off")
+    return false;
+  return null;
+}
 
 const limits = {
   class: 10,
@@ -97,6 +114,28 @@ export function validateProfile(body: unknown, partial = false) {
     )
       errors.age = `Enter a whole-number age between ${MIN_PROFILE_AGE} and ${MAX_PROFILE_AGE}.`;
     else values.age = age;
+  }
+  const visibilityRaw = last(input.visibility);
+  if (!partial || Object.hasOwn(input, "visibility")) {
+    if (visibilityRaw === undefined || visibilityRaw === "") {
+      if (!partial) values.visibility = "private";
+      else if (Object.hasOwn(input, "visibility"))
+        errors.visibility = "Choose who can open your profile.";
+    } else if (
+      typeof visibilityRaw !== "string" ||
+      !(VISIBILITIES as readonly string[]).includes(visibilityRaw)
+    ) {
+      errors.visibility = "Choose who can open your profile.";
+    } else values.visibility = visibilityRaw as ProfileVisibility;
+  }
+  for (const field of FLAG_FIELDS) {
+    if (partial && !Object.hasOwn(input, field)) continue;
+    const parsed = Object.hasOwn(input, field) ? flagValue(input[field]) : true;
+    if (parsed === null) {
+      errors[field] = "Choose whether to show this detail.";
+      continue;
+    }
+    values[field] = parsed;
   }
   if (partial && !Object.keys(values).length && !Object.keys(errors).length)
     errors.form = "Provide at least one profile field to update.";

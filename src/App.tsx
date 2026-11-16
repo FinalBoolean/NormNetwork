@@ -1,4 +1,4 @@
-import type { Profile } from "./profile.js";
+import type { Profile, PublicProfile } from "./profile.js";
 import type {
   CompanionType,
   DatingPreferences,
@@ -13,6 +13,7 @@ import FriendFinderPage from "./FriendFinder.js";
 import StudyFinderPage from "./StudyFinder.js";
 import GamingFinderPage from "./GamingFinder.js";
 import ProfilePageView from "./ProfilePage.js";
+import UserPage from "./UserPage.js";
 import ThreadsPageView from "./ThreadsPage.js";
 import FriendsPageView from "./FriendsPage.js";
 import DiscoverPage from "./DiscoverPage.js";
@@ -35,6 +36,7 @@ export interface PageProps {
   discovery?: DiscoveryData;
   connections?: ConnectionsData;
   profile?: Profile | null;
+  person?: PublicProfile;
   editingProfile?: boolean;
   companionTypes?: CompanionType[];
   studyProfile?: StudyProfile | null;
@@ -536,6 +538,10 @@ export default function App(props: PageProps) {
 
   if (page === "profile") {
     return <ProfilePageView {...props} />;
+  }
+
+  if (page === "user") {
+    return <UserPage {...props} />;
   }
 
   if (page === "companions") {
