@@ -49,14 +49,15 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
 | Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
-| Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
+| Study Buddy Finder | `/finder/study` | Working: real students, search, and course filters (login required) |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
 | Public Threads | `/threads` | Design complete, shows sample data |
 | Friends | `/friends` | Design complete, shows sample data (login required) |
 
 ### Still to build
 - Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
-- Show real students on the finder pages and let students search them. Study and gaming partner profiles and dating preferences can now be saved; the finder pages still show sample data
+- Show real students on the Friend and Gaming Partner finders, like the Study Buddy Finder now does
+- A way to reach a study buddy you find (for example, sending a friend request from their card)
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
@@ -294,6 +295,31 @@ saved main profile, otherwise writes return 409):
 
 HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to
 `/profile`. Run `npm run db:migrate` to apply the new migrations before using these pages.
+
+## Study Buddy Finder
+
+`/finder/study` (login required) lists students who have a study partner profile
+with **Study partners** turned on. Your own card is never shown, and paused profiles
+stay hidden until they're turned back on. Students who share the most courses with
+you come first, then alphabetically by username. Each card shows the student's
+username, class standing, major, bio, courses (the shared ones under **WE SHARE**),
+subject, availability, meeting place, and what they want help with.
+
+- **Search** (`?q=`) matches subject, courses, major, username, and "looking for help
+  with". Typing a course code in any format (`itsc3155`) also finds that course.
+- **Course filter** (`?course=`) shows only students taking that course. Your own
+  courses appear as quick-filter chips. Codes are normalized the same way as the study
+  profile form (`itsc-3155` becomes `ITSC 3155`); anything else returns 400.
+- **Pages** (`?page=`) show 10 students at a time.
+- **Privacy:** cards never include email, age, or gender. Only photos uploaded to
+  Norm's Network are shown, through `GET /finder/study/:userId/photo`, which returns
+  404 unless that student can currently be found on the finder. External photo URLs
+  are never shown to other students.
+
+JSON API: send `Accept: application/json` to `GET /finder/study` (same query
+parameters) for `{ "results": [...], "page": 1, "has_more": false, "q": "", "course": "" }`.
+The query code is in `lib/study-finder.ts`, the route in `routes/finder.ts`, and the
+page in `src/StudyFinder.tsx`.
 
 ## Team
 

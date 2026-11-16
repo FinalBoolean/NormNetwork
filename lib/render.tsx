@@ -28,6 +28,7 @@ export function reactPages(clientScript?: string): RequestHandler {
         studyProfile: data.studyProfile,
         gamingProfile: data.gamingProfile,
         datingPreferences: data.datingPreferences,
+        studyFinder: data.studyFinder,
         values: data.values,
         errors: data.errors,
         next: data.next,
