@@ -275,9 +275,13 @@ export default function FriendFinderPage({
                     height={12}
                     aria-hidden="true"
                   />
-                  Real students. No dating pressure.
-                </p>
-              </div>
+                          Real students. No dating pressure.
+                      </p>
+                    </div>
+                  </div>
+                </article>
+
+<div className="finder-actions-mobile"> 
 
           <div className="finder-actions-mobile">
             <div className="finder-swipe">
