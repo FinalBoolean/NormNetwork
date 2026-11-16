@@ -1,4 +1,6 @@
-import { Router, type Request } from "express";
+import { Router, type Request, type Response } from "express";
+import type { Kysely } from "kysely";
+import type { Database } from "../db/types.js";
 import { requireAuth } from "../middleware/auth.js";
 import { HttpError } from "../middleware/errors.js";
 import { normalizeCourseCode } from "../lib/companion-validation.js";
@@ -7,7 +9,17 @@ import {
   studyBuddyPhoto,
   studyFinderViewer,
 } from "../lib/study-finder.js";
+import {
+  findGamingPartners,
+  gamingFinderViewer,
+  gamingPartnerPhoto,
+} from "../lib/gaming-finder.js";
 import { STUDY_SEARCH_MAX, type StudyFinderData } from "../src/studyFinder.js";
+import {
+  GAMING_SEARCH_MAX,
+  type GamingFinderData,
+} from "../src/gamingFinder.js";
+import { GAME_NAME_MAX, PLATFORMS } from "../src/companions.js";
 import { context, wantsJson } from "./profiles.js";
 
 // Finders: match students by interests, courses, and games.
@@ -23,7 +35,7 @@ finderRouter.get("/friends", (_req, res) => {
   });
 });
 
-// ---------- Study Buddy Finder ----------
+// ---------- Shared by the finders ----------
 
 const MAX_PAGE = 1000;
 // PostgreSQL integer columns can't hold larger IDs.
@@ -35,15 +47,53 @@ const queryText = (req: Request, name: string) => {
   return typeof value === "string" ? value.trim() : "";
 };
 
+/** ?page=, starting at 1. Anything that isn't a page number means page 1. */
+function pageNumber(req: Request) {
+  const pageText = queryText(req, "page");
+  return /^\d{1,4}$/.test(pageText)
+    ? Math.min(Math.max(Number(pageText), 1), MAX_PAGE)
+    : 1;
+}
+
+/** Finder results are personal and change often: never cache them. */
+function noCache(res: Response) {
+  res.vary("Accept");
+  res.set("Cache-Control", "no-store");
+}
+
+/**
+ * GET /finder/<mode>/:userId/photo: a student's uploaded photo, served only
+ * while `lookup` says they can be found on that finder. Otherwise 404.
+ */
+function photoRoute(
+  mode: string,
+  lookup: (
+    db: Kysely<Database>,
+    userId: number,
+  ) => Promise<{ image: Buffer } | undefined>,
+) {
+  finderRouter.get(`/${mode}/:userId/photo`, requireAuth, async (req, res) => {
+    const { db } = context(req);
+    const id = String(req.params.userId);
+    if (!/^\d{1,10}$/.test(id) || Number(id) < 1 || Number(id) > MAX_ID)
+      throw new HttpError(404, "Photo not found");
+    const photo = await lookup(db, Number(id));
+    if (!photo) throw new HttpError(404, "Photo not found");
+    res.set({
+      "Cache-Control": "private, no-store",
+      "X-Content-Type-Options": "nosniff",
+    });
+    res.type("image/webp").send(Buffer.from(photo.image));
+  });
+}
+
+// ---------- Study Buddy Finder ----------
+
 function studyFilters(req: Request) {
   const q = queryText(req, "q").slice(0, STUDY_SEARCH_MAX);
   const rawCourse = queryText(req, "course");
   const course = rawCourse ? normalizeCourseCode(rawCourse) : "";
-  const pageText = queryText(req, "page");
-  const page = /^\d{1,4}$/.test(pageText)
-    ? Math.min(Math.max(Number(pageText), 1), MAX_PAGE)
-    : 1;
-  return { q, rawCourse, course, page };
+  return { q, rawCourse, course, page: pageNumber(req) };
 }
 
 /**
@@ -55,8 +105,7 @@ function studyFilters(req: Request) {
  */
 finderRouter.get("/study", requireAuth, async (req, res) => {
   const { db, userId } = context(req);
-  res.vary("Accept");
-  res.set("Cache-Control", "no-store");
+  noCache(res);
 
   const { q, rawCourse, course, page } = studyFilters(req);
   const viewer = await studyFinderViewer(db, userId);
@@ -96,25 +145,91 @@ finderRouter.get("/study", requireAuth, async (req, res) => {
 });
 
 /** A study buddy's uploaded photo. 404 unless they can be found on the finder. */
-finderRouter.get("/study/:userId/photo", requireAuth, async (req, res) => {
-  const { db } = context(req);
-  const id = String(req.params.userId);
-  if (!/^\d{1,10}$/.test(id) || Number(id) < 1 || Number(id) > MAX_ID)
-    throw new HttpError(404, "Photo not found");
-  const photo = await studyBuddyPhoto(db, Number(id));
-  if (!photo) throw new HttpError(404, "Photo not found");
-  res.set({
-    "Cache-Control": "private, no-store",
-    "X-Content-Type-Options": "nosniff",
-  });
-  res.type("image/webp").send(Buffer.from(photo.image));
-});
+photoRoute("study", studyBuddyPhoto);
 
 // ---------- Gaming Partner Finder ----------
 
-finderRouter.get("/gaming", (_req, res) => {
-  res.render("pages/gaming_finder", {
-    title: "Gaming Finder",
-    description: "Find teammates by game, rank, and role.",
+function gamingFilters(req: Request) {
+  const q = queryText(req, "q").slice(0, GAMING_SEARCH_MAX);
+  const game = queryText(req, "game");
+  const rawPlatform = queryText(req, "platform");
+  const platform = rawPlatform
+    ? (PLATFORMS.find((p) => p.toLowerCase() === rawPlatform.toLowerCase()) ??
+      null)
+    : "";
+  const errors: Record<string, string> = {};
+  if (game.length > GAME_NAME_MAX)
+    errors.game = `Game names are at most ${GAME_NAME_MAX} characters.`;
+  if (platform === null)
+    errors.platform = `Choose a platform: ${PLATFORMS.join(", ")}.`;
+  return { q, game, platform: platform ?? "", page: pageNumber(req), errors };
+}
+
+/**
+ * GET /finder/gaming: students to play with, from their gaming partner profiles.
+ *   ?q=        search games, platforms, rank, role, main character, play style,
+ *              when they play, major, and username
+ *   ?game=     only students who play this game (any letter case)
+ *   ?platform= only students on this platform, e.g. PC
+ *   ?page=     page number, starting at 1
+ * Send `Accept: application/json` for { results, page, has_more, q, game, platform }.
+ */
+finderRouter.get("/gaming", requireAuth, async (req, res) => {
+  const { db, userId } = context(req);
+  noCache(res);
+
+  const { q, game, platform, page, errors } = gamingFilters(req);
+  const viewer = await gamingFinderViewer(db, userId);
+
+  if (Object.keys(errors).length) {
+    if (wantsJson(req)) return res.status(400).json({ errors });
+    res.status(400);
+    const gamingFinder: GamingFinderData = {
+      ...viewer,
+      matches: [],
+      q,
+      game: errors.game ? "" : game,
+      platform,
+      page: 1,
+      hasMore: false,
+    };
+    return res.render("pages/gaming_finder", {
+      title: "Gaming Partner Finder",
+      gamingFinder,
+      errors,
+    });
+  }
+
+  const { matches, hasMore } = await findGamingPartners(db, userId, {
+    myGames: viewer.myGames,
+    myPlatforms: viewer.myPlatforms,
+    game,
+    platform,
+    q,
+    page,
   });
+
+  if (wantsJson(req))
+    return res.json({
+      results: matches,
+      page,
+      has_more: hasMore,
+      q,
+      game,
+      platform,
+    });
+
+  const gamingFinder: GamingFinderData = {
+    ...viewer,
+    matches,
+    q,
+    game,
+    platform,
+    page,
+    hasMore,
+  };
+  res.render("pages/gaming_finder", { title: "Gaming Partner Finder", gamingFinder });
 });
+
+/** A gaming partner's uploaded photo. 404 unless they can be found on the finder. */
+photoRoute("gaming", gamingPartnerPhoto);

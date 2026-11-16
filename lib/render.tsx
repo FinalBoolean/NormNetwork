@@ -29,6 +29,7 @@ export function reactPages(clientScript?: string): RequestHandler {
         gamingProfile: data.gamingProfile,
         datingPreferences: data.datingPreferences,
         studyFinder: data.studyFinder,
+        gamingFinder: data.gamingFinder,
         values: data.values,
         errors: data.errors,
         next: data.next,

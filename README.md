@@ -50,14 +50,14 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Working: real students, search, and course filters (login required) |
-| Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
+| Gaming Partner Finder | `/finder/gaming` | Working: real students, search, and game and platform filters (login required) |
 | Public Threads | `/threads` | Design complete, shows sample data |
 | Friends | `/friends` | Design complete, shows sample data (login required) |
 
 ### Still to build
 - Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
-- Show real students on the Friend and Gaming Partner finders, like the Study Buddy Finder now does
-- A way to reach a study buddy you find (for example, sending a friend request from their card)
+- Show real students on the Friend Finder, like the Study Buddy and Gaming Partner finders now do
+- A way to reach a study buddy or gaming partner you find (for example, sending a friend request from their card)
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
@@ -320,6 +320,32 @@ JSON API: send `Accept: application/json` to `GET /finder/study` (same query
 parameters) for `{ "results": [...], "page": 1, "has_more": false, "q": "", "course": "" }`.
 The query code is in `lib/study-finder.ts`, the route in `routes/finder.ts`, and the
 page in `src/StudyFinder.tsx`.
+
+## Gaming Partner Finder
+
+`/finder/gaming` (login required) works like the Study Buddy Finder, using gaming
+partner profiles. It lists students who have a gaming partner profile with **Gaming
+partners** turned on, never yourself, and hides paused profiles. Students who play the
+most of your games come first (game names match in any letter case), then those on
+the most of your platforms, then alphabetically by username. Each card shows rank
+("Unranked" if blank), comms and when they play, the games you both play, their other
+games, role, main character, play style, and platforms.
+
+- **Search** (`?q=`) matches games, platforms, rank, role, main character, play style,
+  when they play, major, and username.
+- **Game filter** (`?game=`) shows only students who play that game, in any letter case
+  (your own games are quick-filter chips). **Platform filter** (`?platform=`) must be
+  one of PC, PlayStation, Xbox, Nintendo Switch, or Mobile; anything else returns 400.
+- **Pages** (`?page=`) show 10 students at a time.
+- **Privacy:** the same rules as the Study Buddy Finder. Photos come from
+  `GET /finder/gaming/:userId/photo`, which returns 404 unless that student can
+  currently be found on the Gaming Partner Finder.
+
+JSON API: send `Accept: application/json` to `GET /finder/gaming` for
+`{ "results": [...], "page": 1, "has_more": false, "q": "", "game": "", "platform": "" }`.
+The query code is in `lib/gaming-finder.ts` (search helpers shared with the study finder
+are in `lib/finder-query.ts`), the route in `routes/finder.ts`, and the page in
+`src/GamingFinder.tsx`.
 
 ## Team
 

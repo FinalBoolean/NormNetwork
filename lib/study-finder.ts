@@ -6,15 +6,13 @@ import {
   type StudyMatch,
 } from "../src/studyFinder.js";
 import { normalizeCourseCode } from "./companion-validation.js";
+import { LIST_SEPARATOR as COURSE_SEPARATOR, likePattern } from "./finder-query.js";
 import { PHOTO_URL } from "./profile-photo.js";
 
 // Study Buddy Finder queries. Tables: study_finder, profiles, users,
 // companion_types, profile_photos
 
 type Db = Kysely<Database>;
-
-/** Course codes are stored as one comma-separated string: "ITSC 2214, ITSC 3155". */
-const COURSE_SEPARATOR = ", ";
 
 /** URL the finder serves a study buddy's uploaded photo from. */
 export const studyPhotoUrl = (userId: number) => `/finder/study/${userId}/photo`;
@@ -33,10 +31,6 @@ function discoverableStudents(db: Db) {
       join.onRef("ct.user_id", "=", "sf.user_id").on("ct.type", "=", "study"),
     );
 }
-
-/** Escapes % and _ so search text is matched literally by ILIKE. */
-const likePattern = (text: string) =>
-  `%${text.replace(/[\\%_]/g, (char) => `\\${char}`)}%`;
 
 /** True when the stored course list contains this exact course code. */
 const hasCourse = (code: string) =>
