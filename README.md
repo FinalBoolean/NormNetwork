@@ -50,14 +50,15 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
 | Discover | `/discover` | Search student profiles and send connection requests (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
-| Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
-| Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
+| Study Buddy Finder | `/finder/study` | Working: real students, search, and course filters (login required) |
+| Gaming Partner Finder | `/finder/gaming` | Working: real students, search, and game and platform filters (login required) |
 | Public Threads | `/threads` | Design complete, shows sample data |
 | Friends | `/friends` | Incoming and sent requests, accept/decline, and accepted friends (login required) |
 
 ### Still to build
 - Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
-- Show real students on the finder pages and let students search them. Study and gaming partner profiles and dating preferences can now be saved; the finder pages still show sample data
+- Show real students on the Friend Finder, like the Study Buddy and Gaming Partner finders now do
+- A way to reach a study buddy or gaming partner you find (for example, sending a friend request from their card)
 - Posting threads and replies (`threads`, `threads_reply` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
 
@@ -307,6 +308,57 @@ saved main profile, otherwise writes return 409):
 HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to
 `/profile`. Run `npm run db:migrate` to apply the new migrations before using these pages.
 
+## Study Buddy Finder
+
+`/finder/study` (login required) lists students who have a study partner profile
+with **Study partners** turned on. Your own card is never shown, and paused profiles
+stay hidden until they're turned back on. Students who share the most courses with
+you come first, then alphabetically by username. Each card shows the student's
+username, class standing, major, bio, courses (the shared ones under **WE SHARE**),
+subject, availability, meeting place, and what they want help with.
+
+- **Search** (`?q=`) matches subject, courses, major, username, and "looking for help
+  with". Typing a course code in any format (`itsc3155`) also finds that course.
+- **Course filter** (`?course=`) shows only students taking that course. Your own
+  courses appear as quick-filter chips. Codes are normalized the same way as the study
+  profile form (`itsc-3155` becomes `ITSC 3155`); anything else returns 400.
+- **Pages** (`?page=`) show 10 students at a time.
+- **Privacy:** cards never include email, age, or gender. Only photos uploaded to
+  Norm's Network are shown, through `GET /finder/study/:userId/photo`, which returns
+  404 unless that student can currently be found on the finder. External photo URLs
+  are never shown to other students.
+
+JSON API: send `Accept: application/json` to `GET /finder/study` (same query
+parameters) for `{ "results": [...], "page": 1, "has_more": false, "q": "", "course": "" }`.
+The query code is in `lib/study-finder.ts`, the route in `routes/finder.ts`, and the
+page in `src/StudyFinder.tsx`.
+
+## Gaming Partner Finder
+
+`/finder/gaming` (login required) works like the Study Buddy Finder, using gaming
+partner profiles. It lists students who have a gaming partner profile with **Gaming
+partners** turned on, never yourself, and hides paused profiles. Students who play the
+most of your games come first (game names match in any letter case), then those on
+the most of your platforms, then alphabetically by username. Each card shows rank
+("Unranked" if blank), comms and when they play, the games you both play, their other
+games, role, main character, play style, and platforms.
+
+- **Search** (`?q=`) matches games, platforms, rank, role, main character, play style,
+  when they play, major, and username.
+- **Game filter** (`?game=`) shows only students who play that game, in any letter case
+  (your own games are quick-filter chips). **Platform filter** (`?platform=`) must be
+  one of PC, PlayStation, Xbox, Nintendo Switch, or Mobile; anything else returns 400.
+- **Pages** (`?page=`) show 10 students at a time.
+- **Privacy:** the same rules as the Study Buddy Finder. Photos come from
+  `GET /finder/gaming/:userId/photo`, which returns 404 unless that student can
+  currently be found on the Gaming Partner Finder.
+
+JSON API: send `Accept: application/json` to `GET /finder/gaming` for
+`{ "results": [...], "page": 1, "has_more": false, "q": "", "game": "", "platform": "" }`.
+The query code is in `lib/gaming-finder.ts` (search helpers shared with the study finder
+are in `lib/finder-query.ts`), the route in `routes/finder.ts`, and the page in
+`src/GamingFinder.tsx`.
+
 ## User discovery and connections
 
 Open **Discover** (`/discover`) after signing in to browse saved student profiles.
@@ -326,6 +378,12 @@ For JSON responses, send `Accept: application/json`:
 
 - `GET /discover?q=biology&page=1`: profiles, relationship states, and pagination.
 - `GET /friends`: incoming requests, outgoing requests, and accepted friends.
+- `GET /friends/request`: PR #44's incoming-request list, including each request
+  ID and sender's profile details.
+- `GET /friends/list`: PR #44's accepted-friends list.
+- `POST /friends/requests/:profileId`: PR #44's request endpoint, used by
+  Discover's Connect forms. JSON clients receive `{ "message": "Friend request sent!",
+  "requestId": 123 }`. HTML forms return to Discover or Friends after sending.
 - `POST /friends/requests` with `{ "receiver_id": 123 }`: send a request to that
   **profile ID** (not an account ID).
 - `POST /friends/requests/:id/accept` or `/decline`: respond to a pending request
@@ -333,11 +391,15 @@ For JSON responses, send `Accept: application/json`:
 
 Run `npm run db:migrate` before using connections: migration 016 from PR #45
 enforces valid request statuses, prevents self-requests, and allows only one
-pending request per pair. This discovery branch builds on that PR's request API.
+pending request per pair. PR #44's routes and list queries are retained alongside
+PR #45's request API; both send routes use the same transaction-safe helper, and
+the Friends page uses the shared list queries. Uploaded photos in both list APIs
+use the listed student's authenticated photo URL.
 
 Run `npm test` for discovery, connection, authentication, profile, and migration
-coverage, and `npm run build` for TypeScript and browser-build validation. The
-specialized friend, study, and gaming finders remain separate sample screens.
+coverage, and `npm run build` for TypeScript and browser-build validation. Study
+and gaming finders show real students; the specialized Friend Finder remains a
+sample screen.
 
 ## Team
 

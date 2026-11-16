@@ -53,8 +53,6 @@ describe("app", () => {
       "/login",
       "/signup",
       "/finder/friends",
-      "/finder/study",
-      "/finder/gaming",
       "/threads",
     ]) {
       const res = await fetch(`${baseUrl}${path}`);
@@ -63,7 +61,7 @@ describe("app", () => {
   });
 
   test("pages for logged-in users redirect to login", async () => {
-    for (const path of ["/profile", "/friends", "/discover", "/users/someone"]) {
+    for (const path of ["/profile", "/friends", "/discover", "/finder/study", "/finder/gaming"]) {
       const res = await fetch(`${baseUrl}${path}`, { redirect: "manual" });
       assert.equal(res.status, 302, path);
       assert.equal(

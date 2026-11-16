@@ -148,7 +148,7 @@ test("user discovery and connection flow", async (t) => {
       assert.deepEqual([list.incoming, list.outgoing, list.friends], [[], [], []]);
       const html = await (await page("/discover", newcomer.cookie)).text();
       assert.match(html, /href="\/profile"/);
-      assert.doesNotMatch(html, /action="\/friends\/requests"/);
+      assert.doesNotMatch(html, /action="\/friends\/requests(?:\/\d+)?"/);
     });
 
     await t.test("rejects malformed search and page parameters", async () => {
@@ -216,6 +216,8 @@ test("user discovery and connection flow", async (t) => {
       assert.match(html, new RegExp(`action="/friends/requests/${requestId}/accept"`));
       assert.match(html, new RegExp(`action="/friends/requests/${requestId}/decline"`));
       assert.match(html, /action="\/discover"/);
+      assert.match(html, new RegExp(`action="/friends/requests/${carol.profile!.id}"`));
+      assert.doesNotMatch(html, /name="receiver_id"/);
       assert.ok(!html.includes(alice.user.email));
       assert.ok(!html.includes(alice.user.password_hash));
       const friendsHtml = await (await page("/friends", bob.cookie)).text();
@@ -328,7 +330,7 @@ test("user discovery and connection flow", async (t) => {
       assert.equal(pageData(html).discovery.people[0].bio, bio);
       const empty = await (await page("/discover?q=nonexistentstudent")).text();
       assert.deepEqual(pageData(empty).discovery.people, []);
-      assert.doesNotMatch(empty, /action="\/friends\/requests"/);
+      assert.doesNotMatch(empty, /action="\/friends\/requests(?:\/\d+)?"/);
     });
 
     await t.test("HTML request forms preserve safe return locations and reject external redirects", async () => {

@@ -78,8 +78,7 @@ export function ConnectionActions({
     );
   }
   return (
-    <form method="post" action="/friends/requests">
-      <input type="hidden" name="receiver_id" value={person.profileId} />
+    <form method="post" action={`/friends/requests/${person.profileId}`}>
       <input type="hidden" name="returnTo" value={returnTo} />
       <button type="submit" className="finder-btn finder-btn-primary" aria-label={`Connect with ${person.username}`}>
         Connect
