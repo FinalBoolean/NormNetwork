@@ -48,17 +48,17 @@ Sprint 1 set up the database, the Express server, and placeholder pages. Sprint 
 | Study partner profile | `/profile/study` | Working, saves to the database (login required) |
 | Gaming partner profile | `/profile/gaming` | Working, saves to the database (login required) |
 | Dating preferences | `/profile/dating` | Working, 18+ only (login required) |
+| Discover | `/discover` | Search student profiles and send connection requests (login required) |
 | Friend Finder | `/finder/friends` | Design complete, shows sample data |
 | Study Buddy Finder | `/finder/study` | Design complete, shows sample data |
 | Gaming Partner Finder | `/finder/gaming` | Design complete, shows sample data |
 | Public Threads | `/threads` | Design complete, shows sample data |
-| Friends | `/friends` | Design complete, shows sample data (login required) |
+| Friends | `/friends` | Incoming and sent requests, accept/decline, and accepted friends (login required) |
 
 ### Still to build
 - Connect the Friend Finder to its database table (`friend_finder`: interests and hangouts)
 - Show real students on the finder pages and let students search them. Study and gaming partner profiles and dating preferences can now be saved; the finder pages still show sample data
 - Posting threads and replies (`threads`, `threads_reply` tables)
-- Sending, accepting, and declining friend requests (`friend_request`, `friends` tables)
 - Pronouns and concentration on the profile, which are listed in Intended Features but not in the form yet
 
 ## Intended Features
@@ -294,6 +294,38 @@ saved main profile, otherwise writes return 409):
 
 HTML forms `POST` to the same paths and to `/profile/<type>/delete`, then redirect to
 `/profile`. Run `npm run db:migrate` to apply the new migrations before using these pages.
+
+## User discovery and connections
+
+Open **Discover** (`/discover`) after signing in to browse saved student profiles.
+Search by username, major, or bio; results show 12 profiles per page and exclude
+your own account. Create your profile at `/profile` before sending or responding
+to requests. Uploaded profile photos are served through authenticated discovery
+URLs; other students' email addresses and account credentials are never included
+in discovery results.
+
+**Connect** sends a request. Both students can see its status in Discover and
+**Friends** (`/friends`); the recipient can accept or decline it. Accepting adds
+each student to the other's circle. Sending the same pending request again does
+not duplicate it, and an incoming request must be answered before sending one
+back. These forms also work without JavaScript.
+
+For JSON responses, send `Accept: application/json`:
+
+- `GET /discover?q=biology&page=1`: profiles, relationship states, and pagination.
+- `GET /friends`: incoming requests, outgoing requests, and accepted friends.
+- `POST /friends/requests` with `{ "receiver_id": 123 }`: send a request to that
+  **profile ID** (not an account ID).
+- `POST /friends/requests/:id/accept` or `/decline`: respond to a pending request
+  addressed to the signed-in student's profile.
+
+Run `npm run db:migrate` before using connections: migration 016 from PR #45
+enforces valid request statuses, prevents self-requests, and allows only one
+pending request per pair. This discovery branch builds on that PR's request API.
+
+Run `npm test` for discovery, connection, authentication, profile, and migration
+coverage, and `npm run build` for TypeScript and browser-build validation. The
+specialized friend, study, and gaming finders remain separate sample screens.
 
 ## Team
 
