@@ -282,6 +282,7 @@ export default function FriendFinderPage({
                 </article>
 
 <div className="finder-actions-mobile"> 
+  </div>
 
           <div className="finder-actions-mobile">
             <div className="finder-swipe">
