@@ -153,7 +153,11 @@ export default function DiscoverPage({
                   <div className="discovery-identity">
                     <PersonAvatar person={person} className="discovery-avatar" />
                     <div>
-                      <h3 id={`student-${person.profileId}`}>{person.username}</h3>
+                      <h3 id={`student-${person.profileId}`}>
+                        <a href={`/users/${encodeURIComponent(person.username)}`} aria-label={`View ${person.username}'s profile`}>
+                          {person.username}
+                        </a>
+                      </h3>
                       <p>{person.class} · {person.age}</p>
                     </div>
                   </div>

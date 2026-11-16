@@ -90,7 +90,11 @@ export default function FriendsPageView({
                       <article key={person.profileId} className={`friend-row${section.id === "incoming" ? " friend-row-request" : ""}`}>
                         <PersonAvatar person={person} />
                         <div className="friend-info">
-                          <h3 className="friend-name">{person.username}</h3>
+                          <h3 className="friend-name">
+                            <a href={`/users/${encodeURIComponent(person.username)}`} aria-label={`View ${person.username}'s profile`}>
+                              {person.username}
+                            </a>
+                          </h3>
                           <p className="friend-detail">{person.class} · {person.major}</p>
                         </div>
                         <ConnectionActions person={person} hasProfile={connections.hasProfile} returnTo="/friends" />
