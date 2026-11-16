@@ -2,8 +2,8 @@ import { BottomNav, TopNav, type SessionUser } from "./AppShell.js";
 
 const DESTINATIONS = [
   {
-    href: "/finder/friends",
-    eyebrow: "FRIEND FINDER",
+    href: "/discover",
+    eyebrow: "DISCOVER STUDENTS",
     title: "Find your people.",
     body: "New faces. Same Niner spirit.",
     icon: "/assets/join/feature-friends.svg",
@@ -59,7 +59,7 @@ export default function HomePage({
             Pick up where you left off: find people, or jump into a thread.
           </p>
           <div className="home-actions">
-            <a className="join-btn join-btn-primary home-action-btn" href="/finder/friends">
+            <a className="join-btn join-btn-primary home-action-btn" href="/discover">
               <img
                 src="/assets/join/arrow-right.svg"
                 alt=""

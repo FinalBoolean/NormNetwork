@@ -5,6 +5,7 @@ import type {
   GamingProfile,
   StudyProfile,
 } from "./companions.js";
+import type { ConnectionsData, DiscoveryData } from "./discovery.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
 import StudyFinderPage from "./StudyFinder.js";
@@ -12,6 +13,7 @@ import GamingFinderPage from "./GamingFinder.js";
 import ProfilePageView from "./ProfilePage.js";
 import ThreadsPageView from "./ThreadsPage.js";
 import FriendsPageView from "./FriendsPage.js";
+import DiscoverPage from "./DiscoverPage.js";
 import HomePage from "./HomePage.js";
 import ErrorPage from "./ErrorPage.js";
 import {
@@ -28,6 +30,8 @@ export interface SessionUser {
 }
 
 export interface PageProps {
+  discovery?: DiscoveryData;
+  connections?: ConnectionsData;
   profile?: Profile | null;
   editingProfile?: boolean;
   companionTypes?: CompanionType[];
@@ -512,6 +516,10 @@ export default function App(props: PageProps) {
 
   if (page === "friend_finder") {
     return <FriendFinderPage {...props} />;
+  }
+
+  if (page === "discover") {
+    return <DiscoverPage {...props} />;
   }
 
   if (page === "study_finder") {

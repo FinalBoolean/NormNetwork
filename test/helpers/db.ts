@@ -21,15 +21,22 @@ export function createTestDatabase() {
       const result = await embedded.query<R>(text, [...parameters]);
       return { ...result, rowCount: result.affectedRows ?? result.rows.length };
     },
-    release() {},
   };
+  let available = Promise.resolve();
   return new Kysely<Database>({
     dialect: new PostgresDialect({
       pool: {
         options: {},
         async connect() {
+          // PGlite has one physical connection. Reserve it until Kysely releases
+          // it so concurrent requests cannot interleave BEGIN/COMMIT or run
+          // unrelated queries inside another request's transaction.
+          const previous = available;
+          let release!: () => void;
+          available = new Promise<void>((resolve) => { release = resolve; });
+          await previous;
           // PGlite supports ordinary queries; these tests never use pg cursors.
-          return client as unknown as PostgresPoolClient;
+          return { ...client, release } as unknown as PostgresPoolClient;
         },
         async end() {
           await embedded.close();
