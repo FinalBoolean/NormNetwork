@@ -314,6 +314,12 @@ For JSON responses, send `Accept: application/json`:
 
 - `GET /discover?q=biology&page=1`: profiles, relationship states, and pagination.
 - `GET /friends`: incoming requests, outgoing requests, and accepted friends.
+- `GET /friends/request`: PR #44's incoming-request list, including each request
+  ID and sender's profile details.
+- `GET /friends/list`: PR #44's accepted-friends list.
+- `POST /friends/requests/:profileId`: PR #44's request endpoint, used by
+  Discover's Connect forms. JSON clients receive `{ "message": "Friend request sent!",
+  "requestId": 123 }`. HTML forms return to Discover or Friends after sending.
 - `POST /friends/requests` with `{ "receiver_id": 123 }`: send a request to that
   **profile ID** (not an account ID).
 - `POST /friends/requests/:id/accept` or `/decline`: respond to a pending request
@@ -321,7 +327,10 @@ For JSON responses, send `Accept: application/json`:
 
 Run `npm run db:migrate` before using connections: migration 016 from PR #45
 enforces valid request statuses, prevents self-requests, and allows only one
-pending request per pair. This discovery branch builds on that PR's request API.
+pending request per pair. PR #44's routes and list queries are retained alongside
+PR #45's request API; both send routes use the same transaction-safe helper, and
+the Friends page uses the shared list queries. Uploaded photos in both list APIs
+use the listed student's authenticated photo URL.
 
 Run `npm test` for discovery, connection, authentication, profile, and migration
 coverage, and `npm run build` for TypeScript and browser-build validation. The
