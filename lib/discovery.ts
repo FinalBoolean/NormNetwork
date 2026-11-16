@@ -44,13 +44,13 @@ export function peopleQuery(db: Kysely<Database>) {
 
 type PersonRow = Awaited<ReturnType<ReturnType<typeof peopleQuery>["execute"]>>[number];
 
-function photoUrl(person: PersonRow) {
-  if (person.profilePicture === PHOTO_URL) return `/discover/${person.profileId}/photo`;
-  if (!person.profilePicture) return null;
+export function profilePhotoUrl(profileId: number, profilePicture: string | null) {
+  if (profilePicture === PHOTO_URL) return `/discover/${profileId}/photo`;
+  if (!profilePicture) return null;
   try {
-    const url = new URL(person.profilePicture);
+    const url = new URL(profilePicture);
     if (["http:", "https:"].includes(url.protocol) && !url.username && !url.password)
-      return person.profilePicture;
+      return profilePicture;
   } catch { /* Older invalid values use the initials fallback. */ }
   return null;
 }
@@ -77,7 +77,7 @@ export function presentPerson(
     row.sender_id === person.profileId || row.receiver_id === person.profileId);
   return {
     ...person,
-    profilePicture: photoUrl(person),
+    profilePicture: profilePhotoUrl(person.profileId, person.profilePicture),
     connection: friend ? "friends" : request ? request.sender_id === profileId ? "sent" : "incoming" : "none",
     requestId: !friend && request ? request.id : null,
   };
