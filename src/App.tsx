@@ -5,6 +5,8 @@ import type {
   GamingProfile,
   StudyProfile,
 } from "./companions.js";
+import type { StudyFinderData } from "./study-finder.js";
+import type { GamingFinderData } from "./gaming-finder.js";
 import type { ConnectionsData, DiscoveryData } from "./discovery.js";
 import { useState } from "react";
 import FriendFinderPage from "./FriendFinder.js";
@@ -38,6 +40,8 @@ export interface PageProps {
   studyProfile?: StudyProfile | null;
   gamingProfile?: GamingProfile | null;
   datingPreferences?: DatingPreferences | null;
+  studyFinder?: StudyFinderData;
+  gamingFinder?: GamingFinderData;
   page: string;
 
   title: string;
