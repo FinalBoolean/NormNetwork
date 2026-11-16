@@ -21,8 +21,7 @@ import {
 } from "../src/gaming-finder.js";
 import { GAME_NAME_MAX, PLATFORMS } from "../src/companions.js";
 import { context, wantsJson } from "./profiles.js";
-import { findCandidates } from "../lib/finder.js";
-import type { FinderData } from "../src/finder.js";
+import { visibleProfiles } from "../lib/profile-privacy.js";
 
 // Finders: match students by interests, courses, and games.
 // Tables: friend_finder, study_finder, gaming_finder
@@ -30,22 +29,15 @@ export const finderRouter = Router();
 
 finderRouter.get("/", (req, res) => res.redirect("/finder/friends"));
 
-/** Logged-out visitors still see the page, but never other students. */
-async function friendFinderData(req: Request): Promise<FinderData> {
-  const db = req.app.locals.db;
-  if (!req.user || !db)
-    return { signedIn: !!req.user, hasProfile: false, candidates: [] };
-  return findCandidates(db, req.user.id);
-}
-
 finderRouter.get("/friends", async (req, res) => {
-  const finder = await friendFinderData(req);
-  noCache(res);
+  const db = req.app.locals.db;
+  const [person] =
+    req.user && db ? await visibleProfiles(db, req.user.id, 1) : [];
+  if (req.user) res.set("Cache-Control", "private, no-store");
   res.render("pages/friend_finder", {
     title: "Friend Finder",
     description: "Meet Niners who share your interests.",
-    finder,
-    notice: req.query.sent === "1" ? "Friend request sent." : undefined,
+    person,
   });
 });
 
