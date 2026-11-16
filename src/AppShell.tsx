@@ -169,7 +169,7 @@ const SIDEBAR_LINKS = [
   },
 ] as const;
 
-export function FinderSidebar({ mode }: { mode: FinderMode }) {
+export function FinderSidebar({ mode }: { mode?: FinderMode }) {
   return (
     <aside className="finder-sidebar">
       <div className="finder-sidebar-group">

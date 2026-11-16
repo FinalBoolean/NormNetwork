@@ -1,4 +1,5 @@
 import ProfilePhotoPanel from "./ProfilePhotoPanel.js";
+import { LookingForOverview } from "./CompanionPages.js";
 import { BottomNav, FinderSidebar, TopNav } from "./AppShell.js";
 import type { PageProps } from "./App.js";
 import {
@@ -50,6 +51,10 @@ export default function ProfilePageView({
   values,
   errors = {},
   notice,
+  companionTypes,
+  studyProfile,
+  gamingProfile,
+  datingPreferences,
 }: PageProps) {
   const editing = !profile || editingProfile;
   const initial: Record<string, string> = values ?? {
@@ -276,6 +281,14 @@ export default function ProfilePageView({
                 </section>
               </div>
             </article>
+          )}
+          {profile && !editing && (
+            <LookingForOverview
+              companionTypes={companionTypes}
+              studyProfile={studyProfile}
+              gamingProfile={gamingProfile}
+              datingPreferences={datingPreferences}
+            />
           )}
         </main>
       </div>
